@@ -1,0 +1,92 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { UploadCloud } from 'lucide-react';
+
+interface DragDropWrapperProps {
+  children: React.ReactNode;
+  onFileDrop: (filePath: string, fileName: string) => void;
+}
+
+export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFileDrop }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Prevent default window drag and drop navigation
+  useEffect(() => {
+    const preventDefaults = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    window.addEventListener('dragover', preventDefaults);
+    window.addEventListener('drop', preventDefaults);
+
+    return () => {
+      window.removeEventListener('dragover', preventDefaults);
+      window.removeEventListener('drop', preventDefaults);
+    };
+  }, []);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only reset if exiting outer container
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Get OS File Path using Electron webUtils API (Electron 30+ compliant)
+      let filePath = '';
+      if (typeof window !== 'undefined' && window.api?.getPathForFile) {
+        filePath = window.api.getPathForFile(file);
+      } else {
+        filePath = (file as any).path || '';
+      }
+
+      console.log('Dropped file:', file.name, 'Path:', filePath);
+
+      if (filePath) {
+        onFileDrop(filePath, file.name);
+      } else {
+        alert('ファイルのパスが取得できませんでした。');
+      }
+    }
+  };
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="relative min-h-screen"
+    >
+      {children}
+
+      {/* Dragging Overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-md border-4 border-dashed border-blue-500/80 animate-fadeIn pointer-events-none">
+          <div className="p-6 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-400 mb-4 animate-bounce">
+            <UploadCloud className="w-16 h-16" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">動画ファイルをドロップ</h2>
+          <p className="text-slate-300 text-sm">項目入力フォームが自動で開きます</p>
+        </div>
+      )}
+    </div>
+  );
+};

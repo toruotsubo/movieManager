@@ -1,0 +1,38 @@
+{
+  "name": "movie-manager",
+  "version": "1.0.0",
+  "description": "Electron + Next.js Movie Management Desktop App",
+  "main": "dist/electron/main.js",
+  "private": true,
+  "scripts": {
+    "dev:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist/electron --external electron --watch",
+    "dev:next": "next dev -p 3000",
+    "dev": "concurrently -k \"npm run dev:next\" \"npm run dev:electron\" \"wait-on http://localhost:3000 && electron .\"",
+    "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist/electron --external electron",
+    "build:next": "next build",
+    "build": "npm run build:next && npm run build:electron && electron-builder",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "next": "^14.2.23",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.17",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "tsup": "^8.3.6",
+    "typescript": "^5.7.3",
+    "wait-on": "^8.0.2"
+  }
+}

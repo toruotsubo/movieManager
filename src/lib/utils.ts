@@ -1,0 +1,76 @@
+export function formatMediaUrl(
+  filePath: string | null | undefined,
+  cacheBust: boolean = true
+): string {
+  if (!filePath) return '';
+  if (filePath.startsWith('data:') || filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath;
+  }
+
+  // Remove existing media:// prefix and query params if any
+  let cleanPath = filePath.replace(/^media:\/\/(local\/)?/, '').split('?')[0].split('#')[0];
+
+  // Convert Windows backslashes \ to /
+  let normalized = cleanPath.replace(/\\/g, '/');
+
+  // Ensure Windows drive letter starts with / e.g. /F:/path/to/file
+  if (/^[a-zA-Z]:/.test(normalized)) {
+    normalized = '/' + normalized;
+  }
+
+  const segments = normalized.split('/');
+  const encodedSegments = segments.map((seg) => {
+    // Preserve Windows drive letter colon e.g. F:
+    if (/^[a-zA-Z]:$/.test(seg)) {
+      return seg;
+    }
+    return encodeURIComponent(seg);
+  });
+
+  // Use media://local/... format to prevent Chromium from stripping drive letter colons
+  const url = `media://local${encodedSegments.join('/')}`;
+
+  if (cacheBust) {
+    return `${url}?v=${Date.now()}`;
+  }
+
+  return url;
+}
+
+export function getSplitValues(val: any): string[] {
+  if (val === null || val === undefined || val === '') {
+    return ['未設定'];
+  }
+  const str = String(val);
+  const parts = Array.from(
+    new Set(
+      str
+        .split(/[,|、|，]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  );
+  return parts.length > 0 ? parts : ['未設定'];
+}
+
+export function formatReleaseDate(year?: number | null, dateStr?: string | null): string {
+  if (!year && !dateStr) return '-';
+
+  let yearPart = year ? `${year}年` : '';
+  let datePart = '';
+
+  if (dateStr) {
+    const trimmed = dateStr.trim();
+    const match = trimmed.match(/^(\d{1,2})[-/](\d{1,2})$/);
+    if (match) {
+      const month = match[1].padStart(2, '0');
+      const day = match[2].padStart(2, '0');
+      datePart = `${month}月${day}日`;
+    } else {
+      datePart = trimmed;
+    }
+  }
+
+  return `${yearPart}${datePart}` || '-';
+}
+

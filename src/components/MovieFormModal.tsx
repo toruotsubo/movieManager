@@ -1,0 +1,538 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Movie, AppSettings } from '../lib/types';
+import { formatMediaUrl } from '../lib/utils';
+import { RatingStars } from './RatingStars';
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  ChevronLeft,
+  ChevronRight,
+  Camera,
+  Save,
+  ArrowLeft,
+  Film,
+  X,
+  AlertTriangle,
+  Trash2,
+} from 'lucide-react';
+
+interface MovieFormModalProps {
+  isOpen: boolean;
+  movie: Partial<Movie> | null;
+  settings: AppSettings | null;
+  onSave: (movieData: Partial<Movie>) => void;
+  onDelete?: (id: number) => Promise<void>;
+  onClose: () => void;
+}
+
+export const MovieFormModal: React.FC<MovieFormModalProps> = ({
+  isOpen,
+  movie,
+  settings,
+  onSave,
+  onDelete,
+  onClose,
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Form State
+  const [title, setTitle] = useState('');
+  const [genre, setGenre] = useState('');
+  const [cast, setCast] = useState('');
+  const [releaseYear, setReleaseYear] = useState<number | ''>('');
+  const [releaseDate, setReleaseDate] = useState('');
+  const [rating, setRating] = useState(3);
+  const [comment, setComment] = useState('');
+  const [custom1, setCustom1] = useState('');
+  const [custom2, setCustom2] = useState('');
+  const [custom3, setCustom3] = useState('');
+
+  // Video / Summary Image State
+  const [summaryImagePath, setSummaryImagePath] = useState<string | null>(null);
+  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (movie) {
+      setTitle(movie.title || movie.file_name || '');
+      setGenre(movie.genre || '');
+      setCast(movie.cast || '');
+      setReleaseYear(movie.release_year || '');
+      setReleaseDate(movie.release_date || '');
+      setRating(movie.rating || 3);
+      setComment(movie.comment || '');
+      setCustom1(movie.custom_field_1 || '');
+      setCustom2(movie.custom_field_2 || '');
+      setCustom3(movie.custom_field_3 || '');
+      setSummaryImagePath(movie.summary_image_path || null);
+      setIsPlayingVideo(false);
+      setIsPlaying(false);
+      setVideoError(null);
+      setCurrentTime(0);
+      setDuration(0);
+    }
+  }, [movie]);
+
+  if (!isOpen || !movie) return null;
+
+  const videoSrc = formatMediaUrl(movie.file_path, false);
+  const imageSrc = formatMediaUrl(summaryImagePath);
+
+  // Video Player Controls
+  const togglePlay = async () => {
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      try {
+        await videoRef.current.play();
+        setIsPlaying(true);
+      } catch (err: any) {
+        console.error('Failed to play video:', err);
+        setVideoError('動画の再生に失敗しました。ファイル形式または参照パスをご確認ください。');
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  const seekTo = (targetTime: number) => {
+    if (!videoRef.current) return;
+    const validTime = Math.max(0, Math.min(duration || videoRef.current.duration || 0, targetTime));
+    videoRef.current.currentTime = validTime;
+    setCurrentTime(validTime);
+  };
+
+  const seekBy = (seconds: number) => {
+    if (!videoRef.current) return;
+    seekTo(videoRef.current.currentTime + seconds);
+  };
+
+  const stepFrame = (frames: number) => {
+    if (!videoRef.current) return;
+    const fps = 30;
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+    seekTo(videoRef.current.currentTime + frames / fps);
+  };
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    seekTo(time);
+  };
+
+  // Capture screenshot (720px x 405px)
+  const captureFrame = async (): Promise<string | null> => {
+    if (!videoRef.current || !canvasRef.current) return null;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    canvas.width = 720;
+    canvas.height = 405;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    try {
+      ctx.drawImage(video, 0, 0, 720, 405);
+      const dataUrl = canvas.toDataURL('image/png');
+
+      if (window.api?.saveSummaryImage) {
+        const savedPath = await window.api.saveSummaryImage(dataUrl);
+        setSummaryImagePath(savedPath);
+        return savedPath;
+      }
+      setSummaryImagePath(dataUrl);
+      return dataUrl;
+    } catch (err) {
+      console.error('Failed to capture frame:', err);
+      return null;
+    }
+  };
+
+  const handleSave = async () => {
+    setIsCapturing(true);
+    let finalImagePath = summaryImagePath;
+
+    if (isPlayingVideo && videoRef.current) {
+      const captured = await captureFrame();
+      if (captured) finalImagePath = captured;
+    }
+
+    onSave({
+      ...movie,
+      title: title.trim() || movie.file_name || '無題',
+      genre: genre.trim() || null,
+      cast: cast.trim() || null,
+      release_year: releaseYear !== '' ? Number(releaseYear) : null,
+      release_date: releaseDate.trim() || null,
+      rating,
+      comment: comment.trim() || null,
+      custom_field_1: custom1.trim() || null,
+      custom_field_2: custom2.trim() || null,
+      custom_field_3: custom3.trim() || null,
+      summary_image_path: finalImagePath,
+      duration: duration || movie.duration || null,
+    });
+    setIsCapturing(false);
+    onClose();
+  };
+
+  const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const handleDelete = async () => {
+    if (!movie?.id) return;
+    if (confirm('この動画を削除してもよろしいですか？')) {
+      if (onDelete) {
+        await onDelete(movie.id);
+      }
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+      {/* Hidden Canvas for Capturing */}
+      <canvas ref={canvasRef} className="hidden" />
+
+      <div className="glass-card w-full max-w-4xl rounded-2xl border border-slate-700/60 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 bg-slate-900/60">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-lg font-bold text-white">{movie?.id ? '動画データ編集' : '新規動画追加'}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+          {/* Summary Image & Player Section */}
+          <div className="space-y-2">
+            <div className="relative w-full aspect-video max-w-[720px] mx-auto rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl group">
+              {!isPlayingVideo ? (
+                <button
+                  type="button"
+                  onClick={() => setIsPlayingVideo(true)}
+                  className="w-full h-full relative flex items-center justify-center group focus:outline-none"
+                >
+                  {imageSrc ? (
+                    <img
+                      src={imageSrc}
+                      alt="Summary Preview"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-500">
+                      <Film className="w-12 h-12 mb-2 opacity-50" />
+                      <span className="text-sm">サマリー画像なし（クリックで動画再生）</span>
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600/90 text-white font-medium shadow-lg backdrop-blur-sm">
+                      <Play className="w-5 h-5 fill-current" />
+                      <span>動画を再生してキャプチャ</span>
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <div className="w-full h-full flex flex-col relative bg-black">
+                  {videoError ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-900 text-slate-300 text-center space-y-3">
+                      <AlertTriangle className="w-10 h-10 text-amber-400" />
+                      <p className="text-sm text-slate-200">{videoError}</p>
+                      <button
+                        onClick={() => setIsPlayingVideo(false)}
+                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-white"
+                      >
+                        プレビューに戻る
+                      </button>
+                    </div>
+                  ) : (
+                    <video
+                      ref={videoRef}
+                      src={videoSrc}
+                      preload="auto"
+                      playsInline
+                      className="w-full h-full object-contain"
+                      onTimeUpdate={() => {
+                        if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
+                      }}
+                      onLoadedMetadata={() => {
+                        if (videoRef.current) {
+                          const vidDuration = videoRef.current.duration;
+                          setDuration(vidDuration);
+                        }
+                      }}
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLVideoElement;
+                        const errorDetails = target.error
+                          ? `Code: ${target.error.code}, Message: ${target.error.message}`
+                          : 'Unknown video error';
+                        setVideoError(`動画ソースのロードに失敗しました (${errorDetails})。参照パス: ${movie.file_path}`);
+                      }}
+                      onEnded={() => setIsPlaying(false)}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Player Controls Bar (When playing video) */}
+              {isPlayingVideo && !videoError && (
+                <div className="absolute bottom-0 inset-x-0 z-20 p-3 bg-slate-950/90 border-t border-slate-800 flex flex-col gap-2 backdrop-blur-md">
+                  {/* Seek Bar Slider */}
+                  <div className="flex items-center gap-3 text-xs text-slate-300">
+                    <span>{formatTime(currentTime)}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={duration || 100}
+                      step={0.1}
+                      value={currentTime}
+                      onChange={handleSliderChange}
+                      className="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                    />
+                    <span>{formatTime(duration)}</span>
+                  </div>
+
+                  {/* Playback Controls & Frame Capture */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={togglePlay}
+                        className="p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                        title={isPlaying ? '一時停止' : '再生'}
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => seekBy(-5)}
+                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        title="5秒巻き戻し"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => seekBy(5)}
+                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        title="5秒早送り"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </button>
+
+                      <div className="h-4 w-px bg-slate-800 mx-1" />
+
+                      <button
+                        type="button"
+                        onClick={() => stepFrame(-1)}
+                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        title="前コマ"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => stepFrame(1)}
+                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        title="次コマ"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Capture Frame Button */}
+                    <button
+                      type="button"
+                      onClick={captureFrame}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors shadow-md"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>フレームをキャプチャ</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 mb-1 block">タイトル</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="動画のタイトル"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">カテゴリ</label>
+              <input
+                type="text"
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                placeholder="例: アクション, ドキュメンタリー"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">出演者</label>
+              <input
+                type="text"
+                value={cast}
+                onChange={(e) => setCast(e.target.value)}
+                placeholder="例: 山田太郎, 鈴木花子"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">公開年 (西暦)</label>
+              <input
+                type="number"
+                value={releaseYear}
+                onChange={(e) => setReleaseYear(e.target.value ? Number(e.target.value) : '')}
+                placeholder="例: 2024"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">公開月日 (MM-DD)</label>
+              <input
+                type="text"
+                value={releaseDate}
+                onChange={(e) => setReleaseDate(e.target.value)}
+                placeholder="例: 08-15"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="md:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+              <span className="text-sm text-slate-300 font-medium">評価 (5段階)</span>
+              <RatingStars rating={rating} onChange={setRating} size="lg" />
+            </div>
+
+            {settings?.custom_field_1_name && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_1_name}</label>
+                <input
+                  type="text"
+                  value={custom1}
+                  onChange={(e) => setCustom1(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {settings?.custom_field_2_name && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_2_name}</label>
+                <input
+                  type="text"
+                  value={custom2}
+                  onChange={(e) => setCustom2(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {settings?.custom_field_3_name && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_3_name}</label>
+                <input
+                  type="text"
+                  value={custom3}
+                  onChange={(e) => setCustom3(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 mb-1 block">コメント</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                placeholder="動画に関するメモやコメント"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/60 bg-slate-900/60">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-700 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>戻る</span>
+            </button>
+
+            {movie?.id && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/40 bg-red-600/10 text-red-400 hover:bg-red-600/20 text-sm font-medium transition-colors"
+                title="動画を削除"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>削除</span>
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={isCapturing}
+            onClick={handleSave}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isCapturing ? '保存中...' : '保存'}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

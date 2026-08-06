@@ -1,0 +1,39 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# Next.js build output
+/.next/
+/out/
+
+# Electron build output / Transpiled main process
+/dist/
+/release/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env*.local
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
