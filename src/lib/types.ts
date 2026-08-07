@@ -25,6 +25,8 @@ export interface Movie {
   custom_field_2: string | null;
   custom_field_3: string | null;
   duration: number | null;
+  is_grouped?: boolean;
+  parent_movie_id?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -62,6 +64,8 @@ export interface CreateMovieInput {
   custom_field_2?: string | null;
   custom_field_3?: string | null;
   duration?: number | null;
+  is_grouped?: boolean;
+  parent_movie_id?: number | null;
 }
 
 export interface UpdateMovieInput extends Partial<CreateMovieInput> {

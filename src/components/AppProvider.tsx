@@ -129,14 +129,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       savedMovie = await window.api.addMovie(movieData as any);
     }
 
-    // Instant State Update for Immediate UI rerender
-    setMovies((prev) => {
-      const exists = prev.some((m) => m.id === savedMovie.id);
-      if (exists) {
-        return prev.map((m) => (m.id === savedMovie.id ? savedMovie : m));
+    // Sync grouping siblings
+    const keyFields = settings?.key_fields || ['genre'];
+    const currentMovies = await window.api.getMovies();
+
+    if (savedMovie.is_grouped) {
+      // Grouping ON: Find matches and set parent_movie_id
+      const matches = currentMovies.filter((m) => {
+        if (m.id === savedMovie.id) return false;
+
+        if ((m.title || null) !== (savedMovie.title || null)) return false;
+        if ((m.genre || null) !== (savedMovie.genre || null)) return false;
+        if ((m.release_year || null) !== (savedMovie.release_year || null)) return false;
+        if ((m.release_date || null) !== (savedMovie.release_date || null)) return false;
+
+        // Check each key field
+        for (const kf of keyFields) {
+          if (((m as any)[kf] || null) !== ((savedMovie as any)[kf] || null)) return false;
+        }
+
+        return true;
+      });
+
+      for (const sibling of matches) {
+        await window.api.updateMovie({ id: sibling.id, parent_movie_id: savedMovie.id });
       }
-      return [savedMovie, ...prev];
-    });
+    } else {
+      // Grouping OFF: Clear parent_movie_id for any siblings linked to this parent
+      const siblings = currentMovies.filter((m) => m.parent_movie_id === savedMovie.id);
+      for (const sibling of siblings) {
+        await window.api.updateMovie({ id: sibling.id, parent_movie_id: null });
+      }
+    }
 
     // Refresh groups and all data
     await refreshData();

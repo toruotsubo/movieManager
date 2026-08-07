@@ -22,13 +22,20 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
   const [castKana, setCastKana] = useState('');
   const [tags, setTags] = useState('');
   const [saving, setSaving] = useState(false);
+  const loadedGroupKeyRef = React.useRef<string | null>(null);
 
   useEffect(() => {
-    if (group) {
+    if (!isOpen || !group) {
+      loadedGroupKeyRef.current = null;
+      return;
+    }
+
+    if (loadedGroupKeyRef.current !== group.key_signature) {
+      loadedGroupKeyRef.current = group.key_signature;
       setCastKana(initialCastKana || '');
       setTags(group.tags || '');
     }
-  }, [group, initialCastKana]);
+  }, [isOpen, group]);
 
   if (!isOpen || !group) return null;
 

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl, formatReleaseDate, getSplitValues } from '@/lib/utils';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Movie, AppSettings } from '@/lib/types';
 import {
   ArrowLeft,
   Play,
@@ -12,11 +13,49 @@ import {
   Film,
   Calendar,
   User,
-  Tag,
+  Shapes,
   MessageSquare,
   FileText,
   Tags,
+  Layers,
 } from 'lucide-react';
+
+const extractNumber = (m: Movie, settings: AppSettings | null): number => {
+  const customFieldConfigs = [
+    { key: 'custom_field_1', name: settings?.custom_field_1_name },
+    { key: 'custom_field_2', name: settings?.custom_field_2_name },
+    { key: 'custom_field_3', name: settings?.custom_field_3_name },
+  ];
+
+  // 1. Check custom fields with names including "番号", "No", "#", or "vol"
+  for (const cfg of customFieldConfigs) {
+    if (cfg.name && /(番号|No|#|vol)/i.test(cfg.name)) {
+      const val = (m as any)[cfg.key];
+      if (val) {
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+  }
+
+  // 2. Check any custom field value if purely numeric
+  for (const cfg of customFieldConfigs) {
+    const val = (m as any)[cfg.key];
+    if (val) {
+      const parsed = parseInt(val, 10);
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+
+  // 3. Fallback: parse number from title or file_name
+  const titleText = m.title || m.file_name || '';
+  const match = titleText.match(/\d+/);
+  if (match) {
+    return parseInt(match[0], 10);
+  }
+
+  return m.id;
+};
 
 function MovieDetailContent() {
   const searchParams = useSearchParams();
@@ -36,6 +75,31 @@ function MovieDetailContent() {
       router.push('/movies');
     }
   };
+
+  const groupMovies = useMemo(() => {
+    if (!movie) return [];
+    const parentId = movie.parent_movie_id || (movie.is_grouped ? movie.id : null);
+    if (!parentId) return [];
+
+    const matches = movies.filter(
+      (m) => m.id === parentId || m.parent_movie_id === parentId
+    );
+
+    return matches.sort((a, b) => {
+      const numA = extractNumber(a, settings);
+      const numB = extractNumber(b, settings);
+      if (numA !== numB) {
+        return numA - numB; // 昇順（左側から小さい順）
+      }
+      const titleCompare = (a.title || a.file_name || '').localeCompare(
+        b.title || b.file_name || '',
+        'ja',
+        { numeric: true }
+      );
+      if (titleCompare !== 0) return titleCompare;
+      return a.id - b.id;
+    });
+  }, [movies, movie, settings]);
 
   if (loading) {
     return (
@@ -115,6 +179,66 @@ function MovieDetailContent() {
           </div>
         </div>
 
+        {/* Grouped Siblings Image Gallery */}
+        {groupMovies.length > 1 && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-blue-400" />
+                <span>グループ動画一覧 ({groupMovies.length}本)</span>
+              </span>
+              <span className="text-[11px] text-slate-400">番号順表示・クリックで再生</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {groupMovies.map((gMovie) => {
+                const gImgSrc = formatMediaUrl(gMovie.summary_image_path);
+                const isCurrent = gMovie.id === movie.id;
+                const numLabel = extractNumber(gMovie, settings);
+
+                return (
+                  <div
+                    key={gMovie.id}
+                    onClick={() => openMoviePlayer(gMovie.file_path)}
+                    className={`relative aspect-video rounded-xl overflow-hidden bg-slate-950 border cursor-pointer group transition-all ${
+                      isCurrent
+                        ? 'border-blue-500 ring-2 ring-blue-500/50'
+                        : 'border-slate-800 hover:border-slate-600'
+                    }`}
+                    title={`${gMovie.title || gMovie.file_name} - クリックで再生`}
+                  >
+                    {gImgSrc ? (
+                      <img
+                        src={gImgSrc}
+                        alt={gMovie.title || 'Group item'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900">
+                        <Film className="w-6 h-6 opacity-40" />
+                      </div>
+                    )}
+
+                    <div className="absolute top-1 left-1 bg-slate-950/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-blue-300 border border-blue-500/30">
+                      #{numLabel}
+                    </div>
+
+                    {isCurrent && (
+                      <div className="absolute top-1 right-1 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                        表示中
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Play className="w-4 h-4 text-white fill-current" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Rating Header */}
         <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-slate-800">
           <span className="text-sm font-semibold text-slate-200">この動画の評価</span>
@@ -140,7 +264,7 @@ function MovieDetailContent() {
           {/* Category (genre) */}
           <div className="space-y-1">
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <Tag className="w-3.5 h-3.5" /> カテゴリ
+              <Shapes className="w-3.5 h-3.5" /> カテゴリ
             </span>
             <p className="text-sm font-medium text-slate-200">{movie.genre || '-'}</p>
           </div>

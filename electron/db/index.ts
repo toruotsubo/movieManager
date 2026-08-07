@@ -124,6 +124,8 @@ export function addMovie(movie: CreateMovieInput): Movie {
     custom_field_2: movie.custom_field_2 || null,
     custom_field_3: movie.custom_field_3 || null,
     duration: movie.duration || null,
+    is_grouped: movie.is_grouped !== undefined ? movie.is_grouped : false,
+    parent_movie_id: movie.parent_movie_id !== undefined ? movie.parent_movie_id : null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

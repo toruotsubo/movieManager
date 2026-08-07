@@ -53,6 +53,8 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const [custom1, setCustom1] = useState('');
   const [custom2, setCustom2] = useState('');
   const [custom3, setCustom3] = useState('');
+  const [isGrouped, setIsGrouped] = useState(false);
+  const loadedMovieKeyRef = useRef<string | number | null>(null);
 
   // Video / Summary Image State
   const [summaryImagePath, setSummaryImagePath] = useState<string | null>(null);
@@ -64,7 +66,14 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const [videoError, setVideoError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (movie) {
+    if (!isOpen || !movie) {
+      loadedMovieKeyRef.current = null;
+      return;
+    }
+
+    const currentKey = movie.id || movie.file_path || null;
+    if (loadedMovieKeyRef.current !== currentKey) {
+      loadedMovieKeyRef.current = currentKey;
       setTitle(movie.title || movie.file_name || '');
       setGenre(movie.genre || '');
       setCast(movie.cast || '');
@@ -77,6 +86,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       setCustom1(movie.custom_field_1 || '');
       setCustom2(movie.custom_field_2 || '');
       setCustom3(movie.custom_field_3 || '');
+      setIsGrouped(Boolean(movie.is_grouped));
       setSummaryImagePath(movie.summary_image_path || null);
       setIsPlayingVideo(false);
       setIsPlaying(false);
@@ -84,7 +94,37 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       setCurrentTime(0);
       setDuration(0);
     }
-  }, [movie]);
+  }, [isOpen, movie]);
+
+  const getKeyFieldsLabel = () => {
+    const keyFields = settings?.key_fields || ['genre'];
+    const labels: string[] = [];
+    for (const kf of keyFields) {
+      if (kf === 'title') labels.push('タイトル');
+      else if (kf === 'genre') labels.push('カテゴリ');
+      else if (kf === 'cast') labels.push('主演');
+      else if (kf === 'release_year') labels.push('公開年');
+      else if (kf === 'release_date') labels.push('公開月日');
+      else if (kf === 'rating') labels.push('評価');
+      else if (kf === 'custom_field_1') labels.push(settings?.custom_field_1_name || 'ユーザー定義項目1');
+      else if (kf === 'custom_field_2') labels.push(settings?.custom_field_2_name || 'ユーザー定義項目2');
+      else if (kf === 'custom_field_3') labels.push(settings?.custom_field_3_name || 'ユーザー定義項目3');
+      else labels.push('キー項目');
+    }
+    return labels.join(' / ');
+  };
+
+  const handleToggleGrouping = () => {
+    if (!isGrouped) {
+      const keyLabel = getKeyFieldsLabel();
+      const message = `タイトル、カテゴリ、${keyLabel}、公開年月日が同一の動画をグループ化します。`;
+      if (window.confirm(message)) {
+        setIsGrouped(true);
+      }
+    } else {
+      setIsGrouped(false);
+    }
+  };
 
   if (!isOpen || !movie) return null;
 
@@ -189,6 +229,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       custom_field_3: custom3.trim() || null,
       summary_image_path: finalImagePath,
       duration: duration || movie.duration || null,
+      is_grouped: isGrouped,
     });
     setIsCapturing(false);
     onClose();
@@ -311,10 +352,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
 
               {/* Player Controls Bar (When playing video) */}
               {isPlayingVideo && !videoError && (
-                <div className="absolute bottom-0 inset-x-0 z-20 p-3 bg-slate-950/90 border-t border-slate-800 flex flex-col gap-2 backdrop-blur-md">
+                <div className="absolute bottom-0 inset-x-0 z-20 p-2.5 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent flex flex-col gap-1.5 backdrop-blur-xs">
                   {/* Seek Bar Slider */}
-                  <div className="flex items-center gap-3 text-xs text-slate-300">
-                    <span>{formatTime(currentTime)}</span>
+                  <div className="flex items-center gap-2.5 text-xs text-slate-200">
+                    <span className="font-mono text-[11px] text-slate-300 shrink-0">{formatTime(currentTime)}</span>
                     <input
                       type="range"
                       min={0}
@@ -322,40 +363,77 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                       step={0.1}
                       value={currentTime}
                       onChange={handleSliderChange}
-                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      className="w-full h-1.5 bg-slate-800/80 hover:bg-slate-700/80 rounded-lg appearance-none cursor-pointer accent-blue-500 transition-all"
                     />
-                    <span className="text-xs font-mono text-slate-400 shrink-0 w-24 text-right">
-                      {Math.floor(currentTime)}s / {Math.floor(duration)}s
+                    <span className="text-[11px] font-mono text-slate-300 shrink-0 text-right">
+                      {formatTime(duration)}
                     </span>
                   </div>
 
-                  {/* Buttons */}
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-1.5">
+                  {/* Buttons & Actions */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Play/Pause */}
                       <button
                         type="button"
                         onClick={togglePlay}
-                        className="p-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                        className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
                         title={isPlaying ? '一時停止' : '再生'}
                       >
                         {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
                       </button>
+
+                      {/* -5s Rewind */}
                       <button
                         type="button"
                         onClick={() => seekBy(-5)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
                         title="5秒巻き戻し"
                       >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-3.5 h-3.5 text-slate-300" />
+                        <span className="text-[10px] font-mono">-5s</span>
                       </button>
+
+                      {/* +5s Forward */}
                       <button
                         type="button"
                         onClick={() => seekBy(5)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+                        className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
                         title="5秒早送り"
                       >
-                        <RotateCw className="w-4 h-4" />
+                        <RotateCw className="w-3.5 h-3.5 text-slate-300" />
+                        <span className="text-[10px] font-mono">+5s</span>
                       </button>
+
+                      {/* Separator */}
+                      <div className="w-px h-4 bg-slate-700/60 mx-1" />
+
+                      {/* Step Frame Back (-1 frame) */}
+                      <button
+                        type="button"
+                        onClick={() => stepFrame(-1)}
+                        className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
+                        title="コマ送り（1フレーム戻る）"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="text-[10px] font-medium">コマ戻し</span>
+                      </button>
+
+                      {/* Step Frame Forward (+1 frame) */}
+                      <button
+                        type="button"
+                        onClick={() => stepFrame(1)}
+                        className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
+                        title="コマ送り（1フレーム進む）"
+                      >
+                        <span className="text-[10px] font-medium">コマ送り</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-blue-400" />
+                      </button>
+                    </div>
+
+                    {/* Frame Counter Indicator */}
+                    <div className="text-[11px] text-slate-400 font-mono hidden sm:block">
+                      {Math.floor(currentTime * 30)} f
                     </div>
                   </div>
                 </div>
@@ -429,6 +507,27 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 placeholder="例: 08-15"
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
               />
+            </div>
+
+            {/* Grouping Option */}
+            <div className="md:col-span-2 flex items-center justify-between p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
+              <div className="space-y-0.5">
+                <span className="text-sm font-semibold text-slate-200 block">グループ化</span>
+                <span className="text-xs text-slate-400 block">
+                  同一タイトル・カテゴリ・{getKeyFieldsLabel()}・公開年月日の動画をグループ化
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleGrouping}
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                  isGrouped
+                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                }`}
+              >
+                {isGrouped ? 'ON' : 'OFF'}
+              </button>
             </div>
 
             <div className="md:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">

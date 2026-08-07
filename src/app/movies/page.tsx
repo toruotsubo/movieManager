@@ -14,9 +14,10 @@ import {
   Film,
   Calendar,
   User,
-  Tag,
+  Shapes,
   X,
   FileText,
+  Edit,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -34,7 +35,7 @@ const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string =
 };
 
 function MoviesContent() {
-  const { movies, settings, updateMovieRating, openMoviePlayer, loading } = useApp();
+  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading } = useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterSignature = searchParams.get('filter');
@@ -67,7 +68,8 @@ function MoviesContent() {
   }, [filterValues]);
 
   const filteredMovies = useMemo(() => {
-    let result = movies;
+    // Exclude sibling movies (movies with a parent_movie_id)
+    let result = movies.filter((movie) => !movie.parent_movie_id);
     if (filterValues) {
       result = result.filter((movie) => {
         for (const [k, v] of Object.entries(filterValues)) {
@@ -234,22 +236,11 @@ function MoviesContent() {
           return (
             <div
               key={movie.id}
-              onClick={() => {
-                const params = new URLSearchParams();
-                params.set('id', movie.id.toString());
-                if (filterSignature) {
-                  params.set('filter', filterSignature);
-                }
-                router.push(`/movies/detail?${params.toString()}`);
-              }}
-              className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer group flex flex-col justify-between border border-slate-800"
+              className="glass-card rounded-2xl overflow-hidden group flex flex-col justify-between border border-slate-800"
             >
               {/* Summary Image (720x405 Aspect Ratio) */}
               <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openMoviePlayer(movie.file_path);
-                }}
+                onClick={() => openMoviePlayer(movie.file_path)}
                 className="relative aspect-video w-full bg-slate-950 overflow-hidden group/img cursor-pointer"
                 title="クリックで動画再生"
               >
@@ -277,7 +268,7 @@ function MoviesContent() {
               {/* Metadata & Rating */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-2">
-                  <h3 className="text-base font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+                  <h3 className="text-base font-bold text-white line-clamp-1">
                     {movie.title || movie.file_name}
                   </h3>
 
@@ -295,7 +286,7 @@ function MoviesContent() {
                     {/* Category (genre) - excluded if transitioned from Key Items page */}
                     {!(isFromKeyItemsPage && keyFields.includes('genre')) && (
                       <div className="flex items-center gap-2">
-                        <Tag className="w-3.5 h-3.5 text-slate-500" />
+                        <Shapes className="w-3.5 h-3.5 text-slate-500" />
                         <span className="text-slate-300">{movie.genre || '未指定'}</span>
                       </div>
                     )}
@@ -339,13 +330,35 @@ function MoviesContent() {
                   </div>
                 </div>
 
-                {/* Rating */}
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                {/* Rating & Actions */}
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
                   <RatingStars
                     rating={movie.rating}
                     onChange={(newRating) => updateMovieRating(movie.id, newRating)}
                   />
-                  <span className="text-xs text-slate-500 group-hover:text-slate-400">詳細を見る →</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openEditMovieModal(movie)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors"
+                      title="項目入力フォームを開く"
+                    >
+                      <Edit className="w-3.5 h-3.5 text-blue-400" />
+                      <span>編集</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        params.set('id', movie.id.toString());
+                        if (filterSignature) {
+                          params.set('filter', filterSignature);
+                        }
+                        router.push(`/movies/detail?${params.toString()}`);
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors"
+                    >
+                      <span>動画詳細画面</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

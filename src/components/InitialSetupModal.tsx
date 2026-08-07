@@ -31,9 +31,17 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [custom3, setCustom3] = useState('');
   const [selectedKeyField, setSelectedKeyField] = useState<string>('genre');
 
-  // Sync settings when modal opens or currentSettings updates so values never vanish
+  const isLoadedRef = React.useRef(false);
+
+  // Sync settings when modal opens so values are initialized once when opened
   useEffect(() => {
-    if (isOpen && currentSettings) {
+    if (!isOpen) {
+      isLoadedRef.current = false;
+      return;
+    }
+
+    if (isOpen && currentSettings && !isLoadedRef.current) {
+      isLoadedRef.current = true;
       setCustom1(currentSettings.custom_field_1_name || '');
       setCustom2(currentSettings.custom_field_2_name || '');
       setCustom3(currentSettings.custom_field_3_name || '');
