@@ -1,11 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AppSettings, Movie, KeyItemGroup } from '../lib/types';
+import { AppSettings, Movie, KeyItemGroup, UpdateKeyItemInput } from '../lib/types';
 import { Navbar } from './Navbar';
 import { InitialSetupModal } from './InitialSetupModal';
 import { MovieFormModal } from './MovieFormModal';
+import { KeyItemFormModal } from './KeyItemFormModal';
 import { DragDropWrapper } from './DragDropWrapper';
+import { getSplitValues } from '../lib/utils';
 
 interface AppContextType {
   settings: AppSettings | null;
@@ -17,6 +19,7 @@ interface AppContextType {
   updateKeyItemRating: (signature: string, rating: number) => Promise<void>;
   openMoviePlayer: (filePath: string) => Promise<void>;
   openEditMovieModal: (movie: Partial<Movie>) => void;
+  openEditKeyItemModal: (group: KeyItemGroup) => void;
   openSettingsModal: () => void;
   resetData: () => Promise<void>;
   deleteMovie: (id: number) => Promise<void>;
@@ -42,6 +45,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [activeMovie, setActiveMovie] = useState<Partial<Movie> | null>(null);
+
+  const [isKeyItemFormOpen, setIsKeyItemFormOpen] = useState(false);
+  const [activeKeyGroup, setActiveKeyGroup] = useState<KeyItemGroup | null>(null);
 
   const refreshData = async () => {
     if (typeof window === 'undefined' || !window.api) {
@@ -162,6 +168,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const openEditKeyItemModal = (group: KeyItemGroup) => {
+    setActiveKeyGroup(group);
+    setIsKeyItemFormOpen(true);
+  };
+
+  const handleSaveKeyItemDetails = async (data: { key_signature: string; cast_kana: string; tags: string }) => {
+    if (window.api) {
+      await window.api.updateKeyItemDetails(data);
+      await refreshData();
+    }
+  };
+
   const handleDeleteMovie = async (id: number) => {
     if (window.api) {
       await window.api.deleteMovie(id);
@@ -182,6 +200,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateKeyItemRating,
         openMoviePlayer,
         openEditMovieModal,
+        openEditKeyItemModal,
         openSettingsModal: () => setIsSettingsOpen(true),
         resetData: handleResetData,
         deleteMovie: handleDeleteMovie,
@@ -208,6 +227,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           onClose={() => {
             setIsFormOpen(false);
             setActiveMovie(null);
+          }}
+        />
+
+        <KeyItemFormModal
+          isOpen={isKeyItemFormOpen}
+          group={activeKeyGroup}
+          initialCastKana={(() => {
+            if (!activeKeyGroup) return '';
+            const keyFields = settings?.key_fields || ['genre'];
+            const targetCastVal = activeKeyGroup.key_values['cast'];
+
+            for (const m of movies) {
+              let combinations: Record<string, string>[] = [{}];
+              for (const kf of keyFields) {
+                const values = getSplitValues((m as any)[kf]);
+                const nextCombinations: Record<string, string>[] = [];
+                for (const comb of combinations) {
+                  for (const val of values) {
+                    nextCombinations.push({ ...comb, [kf]: val });
+                  }
+                }
+                combinations = nextCombinations;
+              }
+              const isMatch = combinations.some((comb) => JSON.stringify(comb) === activeKeyGroup.key_signature);
+              if (isMatch) {
+                if (targetCastVal && m.cast && m.cast_kana) {
+                  const castSplits = getSplitValues(m.cast);
+                  const kanaSplits = getSplitValues(m.cast_kana);
+                  const idx = castSplits.findIndex((c) => c === targetCastVal);
+                  if (idx !== -1 && kanaSplits[idx]) {
+                    return kanaSplits[idx].trim();
+                  }
+                }
+                if (m.cast_kana) return m.cast_kana;
+              }
+            }
+            return '';
+          })()}
+          onSave={handleSaveKeyItemDetails}
+          onClose={() => {
+            setIsKeyItemFormOpen(false);
+            setActiveKeyGroup(null);
           }}
         />
       </DragDropWrapper>

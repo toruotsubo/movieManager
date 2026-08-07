@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
-import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput } from '../src/lib/types';
+import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput, UpdateKeyItemInput } from '../src/lib/types';
 
 export const api = {
   getPathForFile: (file: File): string => {
@@ -25,6 +25,8 @@ export const api = {
   getKeyItemGroups: (): Promise<KeyItemGroup[]> => ipcRenderer.invoke('keyItems:getAll'),
   updateKeyItemRating: (key_signature: string, rating: number): Promise<void> =>
     ipcRenderer.invoke('keyItems:updateRating', { key_signature, rating }),
+  updateKeyItemDetails: (input: UpdateKeyItemInput): Promise<void> =>
+    ipcRenderer.invoke('keyItems:updateDetails', input),
 
   openMoviePlayer: (filePath: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('app:openMoviePlayer', filePath),

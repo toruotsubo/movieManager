@@ -5,7 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { ArrowUpDown, Film, LayoutGrid, ChevronRight, Filter } from 'lucide-react';
+import { ArrowUpDown, Film, LayoutGrid, ChevronRight, Filter, Pencil, Tag } from 'lucide-react';
 import { clsx } from 'clsx';
 import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
 
@@ -21,11 +21,12 @@ const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string =
 };
 
 export default function KeyItemsPage() {
-  const { keyGroups, settings, updateKeyItemRating, loading } = useApp();
+  const { keyGroups, settings, updateKeyItemRating, openEditKeyItemModal, loading } = useApp();
   const router = useRouter();
 
-  const [sortField, setSortField] = useState<'key' | 'rating'>('rating');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
+  const [tagFilter, setTagFilter] = useState<string>('all');
 
   if (loading) {
     return (
@@ -38,23 +39,33 @@ export default function KeyItemsPage() {
   const keyFieldId = settings?.key_fields && settings.key_fields.length > 0 ? settings.key_fields[0] : 'genre';
   const keyLabel = getKeyFieldLabel(keyFieldId, settings);
 
-  const sortedGroups = [...keyGroups].sort((a, b) => {
-    if (sortField === 'rating') {
-      return sortOrder === 'desc' ? b.rating - a.rating : a.rating - b.rating;
-    } else {
-      const aVal = Object.values(a.key_values).join(' / ');
-      const bVal = Object.values(b.key_values).join(' / ');
-      return sortOrder === 'desc' ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+  // Extract all unique tags
+  const availableTags = Array.from(
+    new Set(
+      keyGroups.flatMap((g) =>
+        g.tags ? g.tags.split(',').map((t) => t.trim()).filter(Boolean) : []
+      )
+    )
+  ).sort((a, b) => a.localeCompare(b, 'ja'));
+
+  const filteredGroups = keyGroups.filter((g) => {
+    if (ratingFilter !== 'all' && g.rating !== ratingFilter) return false;
+    if (tagFilter !== 'all') {
+      if (!g.tags) return false;
+      const groupTags = g.tags.split(',').map((t) => t.trim());
+      if (!groupTags.includes(tagFilter)) return false;
     }
+    return true;
   });
 
-  const toggleSort = (field: 'key' | 'rating') => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
-    }
+  const sortedGroups = [...filteredGroups].sort((a, b) => {
+    const aVal = (keyFieldId === 'cast' && a.sort_key) ? a.sort_key : Object.values(a.key_values).join(' / ');
+    const bVal = (keyFieldId === 'cast' && b.sort_key) ? b.sort_key : Object.values(b.key_values).join(' / ');
+    return sortOrder === 'desc' ? bVal.localeCompare(aVal, 'ja') : aVal.localeCompare(bVal, 'ja');
+  });
+
+  const toggleSort = () => {
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
   };
 
   const handleRowClick = (group: KeyItemGroup) => {
@@ -66,7 +77,7 @@ export default function KeyItemsPage() {
   return (
     <div className="space-y-6">
       {/* Page Title & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <LayoutGrid className="w-7 h-7 text-blue-400" />
@@ -74,35 +85,76 @@ export default function KeyItemsPage() {
           </h1>
         </div>
 
-        {/* Sort Controls */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-400 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" /> ソート:
-          </span>
-          <button
-            onClick={() => toggleSort('key')}
-            className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              sortField === 'key'
-                ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            )}
-          >
-            <span>{keyLabel}</span>
-            {sortField === 'key' && <ArrowUpDown className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            onClick={() => toggleSort('rating')}
-            className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-              sortField === 'rating'
-                ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-            )}
-          >
-            <span>評価</span>
-            {sortField === 'rating' && <ArrowUpDown className="w-3.5 h-3.5" />}
-          </button>
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Tag Filter Controls */}
+          {availableTags.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                <Tag className="w-3.5 h-3.5 text-emerald-400" /> タグ:
+              </span>
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+              >
+                <option value="all">すべてのタグ</option>
+                {availableTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Rating Filter Controls */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> 評価絞り込み:
+            </span>
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+              <button
+                onClick={() => setRatingFilter('all')}
+                className={clsx(
+                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                  ratingFilter === 'all'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                )}
+              >
+                すべて
+              </button>
+              {[5, 4, 3, 2, 1].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRatingFilter(r)}
+                  className={clsx(
+                    'px-2 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-0.5',
+                    ratingFilter === r
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  )}
+                >
+                  <span className="text-amber-400">★</span>
+                  <span>{r}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <ArrowUpDown className="w-3.5 h-3.5" /> ソート:
+            </span>
+            <button
+              onClick={toggleSort}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 border-blue-500 text-blue-400 transition-colors"
+            >
+              <span>{keyLabel} ({sortOrder === 'asc' ? '昇順' : '降順'})</span>
+              <ArrowUpDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -112,9 +164,11 @@ export default function KeyItemsPage() {
           <div className="w-16 h-16 rounded-full bg-slate-800/80 flex items-center justify-center mx-auto text-slate-500">
             <Film className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-200">登録データがありません</h3>
+          <h3 className="text-lg font-semibold text-slate-200">該当するキー項目がありません</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto">
-            動画ファイルを画面上にドラッグ＆ドロップして追加してください。
+            {tagFilter !== 'all' || ratingFilter !== 'all'
+              ? '絞り込み条件を変更して再度ご確認ください。'
+              : '動画ファイルを画面上にドラッグ＆ドロップして追加してください。'}
           </p>
         </div>
       )}
@@ -127,8 +181,7 @@ export default function KeyItemsPage() {
           return (
             <div
               key={group.key_signature}
-              onClick={() => handleRowClick(group)}
-              className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer group flex flex-col justify-between border border-slate-800"
+              className="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-slate-800"
             >
               {/* Summary Image (720x405 Aspect Ratio) */}
               <div className="relative aspect-video w-full bg-slate-950 overflow-hidden">
@@ -136,7 +189,7 @@ export default function KeyItemsPage() {
                   <img
                     src={imageSrc}
                     alt="Group Summary"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900">
@@ -153,25 +206,69 @@ export default function KeyItemsPage() {
 
               {/* Group Metadata & Rating */}
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                {/* No English label display - values only */}
-                <div className="space-y-1">
-                  {Object.values(group.key_values).map((val, idx) => (
-                    <div key={idx} className="text-lg font-bold text-white line-clamp-1">
-                      {val}
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    {Object.values(group.key_values).map((val, idx) => (
+                      <div key={idx} className="text-lg font-bold text-white line-clamp-1">
+                        {val}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Key Item Tags Display */}
+                  {group.tags && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <Tag className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      {group.tags.split(',').map((t, idx) => {
+                        const trimmedTag = t.trim();
+                        if (!trimmedTag) return null;
+                        const isSelected = tagFilter === trimmedTag;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => setTagFilter(isSelected ? 'all' : trimmedTag)}
+                            className={clsx(
+                              'px-2 py-0.5 rounded-md border text-[11px] font-medium transition-colors cursor-pointer',
+                              isSelected
+                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-semibold'
+                                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
+                            )}
+                          >
+                            {trimmedTag}
+                          </button>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
 
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">{keyLabel}評価:</span>
+                    <span className="text-xs text-slate-400">評価:</span>
                     <RatingStars
                       rating={group.rating}
                       onChange={(newRating) => updateKeyItemRating(group.key_signature, newRating)}
                     />
                   </div>
 
-                  <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openEditKeyItemModal(group)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 text-xs font-medium transition-colors cursor-pointer"
+                      title="キー項目を編集"
+                    >
+                      <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                      <span>編集</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleRowClick(group)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      <span>動画一覧</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

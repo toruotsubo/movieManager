@@ -14,6 +14,7 @@ import {
   updateMovieRating,
   getKeyItemGroups,
   updateKeyItemRating,
+  updateKeyItemDetails,
   resetAllData,
 } from './db';
 
@@ -119,6 +120,9 @@ ipcMain.handle('movies:updateRating', async (_, { id, rating }: { id: number; ra
 ipcMain.handle('keyItems:getAll', async () => getKeyItemGroups());
 ipcMain.handle('keyItems:updateRating', async (_, { key_signature, rating }: { key_signature: string; rating: number }) =>
   updateKeyItemRating(key_signature, rating)
+);
+ipcMain.handle('keyItems:updateDetails', async (_, input) =>
+  updateKeyItemDetails(input)
 );
 
 ipcMain.handle('app:resetData', async () => resetAllData());

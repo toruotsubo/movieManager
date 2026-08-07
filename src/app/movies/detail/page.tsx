@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
-import { formatMediaUrl, formatReleaseDate } from '@/lib/utils';
+import { formatMediaUrl, formatReleaseDate, getSplitValues } from '@/lib/utils';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Tag,
   MessageSquare,
   FileText,
+  Tags,
 } from 'lucide-react';
 
 function MovieDetailContent() {
@@ -23,7 +24,18 @@ function MovieDetailContent() {
   const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading } = useApp();
 
   const movieId = Number(searchParams.get('id'));
+  const filterSignature = searchParams.get('filter');
   const movie = movies.find((m) => m.id === movieId);
+
+  const handleBack = () => {
+    if (filterSignature) {
+      const params = new URLSearchParams();
+      params.set('filter', filterSignature);
+      router.push(`/movies?${params.toString()}`);
+    } else {
+      router.push('/movies');
+    }
+  };
 
   if (loading) {
     return (
@@ -38,7 +50,7 @@ function MovieDetailContent() {
       <div className="text-center py-16 space-y-4">
         <h2 className="text-xl font-bold text-slate-300">動画が見つかりませんでした</h2>
         <button
-          onClick={() => router.push('/movies')}
+          onClick={handleBack}
           className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium"
         >
           動画一覧へ戻る
@@ -55,7 +67,7 @@ function MovieDetailContent() {
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
-            onClick={() => router.push('/movies')}
+            onClick={handleBack}
             className="p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -136,9 +148,12 @@ function MovieDetailContent() {
           {/* Cast */}
           <div className="space-y-1">
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5" /> 出演者
+              <User className="w-3.5 h-3.5" /> 主演
             </span>
-            <p className="text-sm font-medium text-slate-200">{movie.cast || '-'}</p>
+            <p className="text-sm font-medium text-slate-200">
+              {movie.cast || '-'}
+              {movie.cast_kana ? <span className="text-xs text-slate-400 font-normal ml-2">({movie.cast_kana})</span> : null}
+            </p>
           </div>
 
           {/* Release Year & Date */}
@@ -170,6 +185,25 @@ function MovieDetailContent() {
             <div className="space-y-1">
               <span className="text-xs text-slate-500 font-medium">{settings.custom_field_3_name}</span>
               <p className="text-sm font-medium text-slate-200">{movie.custom_field_3 || '-'}</p>
+            </div>
+          )}
+
+          {/* Tags */}
+          {movie.tags && (
+            <div className="md:col-span-2 space-y-1.5">
+              <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                <Tags className="w-3.5 h-3.5" /> タグ
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {getSplitValues(movie.tags).map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-1 rounded-lg bg-blue-600/15 text-blue-300 border border-blue-500/30 text-xs font-medium"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 

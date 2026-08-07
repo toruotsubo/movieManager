@@ -1,13 +1,14 @@
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
-import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput } from '../../src/lib/types';
+import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput, UpdateKeyItemInput } from '../../src/lib/types';
 import { getSplitValues } from '../../src/lib/utils';
 
 interface JsonDatabaseSchema {
   settings: AppSettings;
   movies: Movie[];
   keyRatings: Record<string, number>;
+  keyTags: Record<string, string>;
 }
 
 let jsonDb: JsonDatabaseSchema | null = null;
@@ -43,6 +44,7 @@ export function initDatabase() {
       },
       movies: [],
       keyRatings: {},
+      keyTags: {},
     };
     saveDatabase();
   }
@@ -112,10 +114,12 @@ export function addMovie(movie: CreateMovieInput): Movie {
     title: movie.title || null,
     genre: movie.genre || null,
     cast: movie.cast || null,
+    cast_kana: movie.cast_kana || null,
     release_year: movie.release_year || null,
     release_date: movie.release_date || null,
     rating: movie.rating !== undefined ? movie.rating : 3,
     comment: movie.comment || null,
+    tags: movie.tags || null,
     custom_field_1: movie.custom_field_1 || null,
     custom_field_2: movie.custom_field_2 || null,
     custom_field_3: movie.custom_field_3 || null,
@@ -208,12 +212,39 @@ export function getKeyItemGroups(): KeyItemGroup[] {
 
     const groupRating = jsonDb!.keyRatings[signature] !== undefined ? jsonDb!.keyRatings[signature] : 3;
 
+    let sortKey = Object.values(group.keyValues).join(' / ');
+    if (keyFields.includes('cast')) {
+      const targetCastVal = group.keyValues['cast'];
+      let foundKana = '';
+
+      for (const movie of group.movies) {
+        if (!movie.cast || !movie.cast_kana) continue;
+        const castSplits = getSplitValues(movie.cast);
+        const kanaSplits = getSplitValues(movie.cast_kana);
+        const idx = castSplits.findIndex((c) => c === targetCastVal);
+        if (idx !== -1 && kanaSplits[idx]) {
+          foundKana = kanaSplits[idx].trim();
+          break;
+        } else if (!foundKana && kanaSplits.length > 0) {
+          foundKana = kanaSplits[0].trim();
+        }
+      }
+
+      if (foundKana) {
+        sortKey = foundKana;
+      }
+    }
+
+    const tags = jsonDb!.keyTags && jsonDb!.keyTags[signature] ? jsonDb!.keyTags[signature] : null;
+
     result.push({
       key_signature: signature,
       key_values: group.keyValues,
+      sort_key: sortKey,
       summary_image_path: topMovie ? topMovie.summary_image_path : null,
       rating: groupRating,
       movie_count: group.movies.length,
+      tags: tags,
     });
   }
 
@@ -223,6 +254,44 @@ export function getKeyItemGroups(): KeyItemGroup[] {
 export function updateKeyItemRating(key_signature: string, rating: number): void {
   if (!jsonDb) initDatabase();
   jsonDb!.keyRatings[key_signature] = rating;
+  saveDatabase();
+}
+
+export function updateKeyItemDetails(input: UpdateKeyItemInput): void {
+  if (!jsonDb) initDatabase();
+  if (!jsonDb!.keyTags) jsonDb!.keyTags = {};
+
+  const { key_signature, cast_kana, tags } = input;
+  if (tags !== undefined) {
+    jsonDb!.keyTags[key_signature] = tags || '';
+  }
+
+  if (cast_kana !== undefined) {
+    const settings = getAppSettings();
+    const keyFields = settings.key_fields;
+    const movies = jsonDb!.movies;
+
+    for (const movie of movies) {
+      let combinations: Record<string, string>[] = [{}];
+      for (const kf of keyFields) {
+        const values = getSplitValues((movie as any)[kf]);
+        const nextCombinations: Record<string, string>[] = [];
+        for (const comb of combinations) {
+          for (const val of values) {
+            nextCombinations.push({ ...comb, [kf]: val });
+          }
+        }
+        combinations = nextCombinations;
+      }
+
+      const isMatch = combinations.some((comb) => JSON.stringify(comb) === key_signature);
+      if (isMatch) {
+        movie.cast_kana = cast_kana;
+        movie.updated_at = new Date().toISOString();
+      }
+    }
+  }
+
   saveDatabase();
 }
 
@@ -250,6 +319,7 @@ export function resetAllData(): AppSettings {
     },
     movies: [],
     keyRatings: {},
+    keyTags: {},
   };
 
   saveDatabase();

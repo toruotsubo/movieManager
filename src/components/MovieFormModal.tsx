@@ -44,10 +44,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [cast, setCast] = useState('');
+  const [castKana, setCastKana] = useState('');
   const [releaseYear, setReleaseYear] = useState<number | ''>('');
   const [releaseDate, setReleaseDate] = useState('');
   const [rating, setRating] = useState(3);
   const [comment, setComment] = useState('');
+  const [tags, setTags] = useState('');
   const [custom1, setCustom1] = useState('');
   const [custom2, setCustom2] = useState('');
   const [custom3, setCustom3] = useState('');
@@ -66,10 +68,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       setTitle(movie.title || movie.file_name || '');
       setGenre(movie.genre || '');
       setCast(movie.cast || '');
+      setCastKana(movie.cast_kana || '');
       setReleaseYear(movie.release_year || '');
       setReleaseDate(movie.release_date || '');
       setRating(movie.rating || 3);
       setComment(movie.comment || '');
+      setTags(movie.tags || '');
       setCustom1(movie.custom_field_1 || '');
       setCustom2(movie.custom_field_2 || '');
       setCustom3(movie.custom_field_3 || '');
@@ -174,10 +178,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       title: title.trim() || movie.file_name || '無題',
       genre: genre.trim() || null,
       cast: cast.trim() || null,
+      cast_kana: castKana.trim() || null,
       release_year: releaseYear !== '' ? Number(releaseYear) : null,
       release_date: releaseDate.trim() || null,
       rating,
       comment: comment.trim() || null,
+      tags: tags.trim() || null,
       custom_field_1: custom1.trim() || null,
       custom_field_2: custom2.trim() || null,
       custom_field_3: custom3.trim() || null,
@@ -316,14 +322,16 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                       step={0.1}
                       value={currentTime}
                       onChange={handleSliderChange}
-                      className="w-full accent-blue-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
-                    <span>{formatTime(duration)}</span>
+                    <span className="text-xs font-mono text-slate-400 shrink-0 w-24 text-right">
+                      {Math.floor(currentTime)}s / {Math.floor(duration)}s
+                    </span>
                   </div>
 
-                  {/* Playback Controls & Frame Capture */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  {/* Buttons */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={togglePlay}
@@ -332,7 +340,6 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                       >
                         {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
                       </button>
-
                       <button
                         type="button"
                         onClick={() => seekBy(-5)}
@@ -341,7 +348,6 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                       >
                         <RotateCcw className="w-4 h-4" />
                       </button>
-
                       <button
                         type="button"
                         onClick={() => seekBy(5)}
@@ -350,36 +356,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                       >
                         <RotateCw className="w-4 h-4" />
                       </button>
-
-                      <div className="h-4 w-px bg-slate-800 mx-1" />
-
-                      <button
-                        type="button"
-                        onClick={() => stepFrame(-1)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-                        title="前コマ"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => stepFrame(1)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
-                        title="次コマ"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
                     </div>
-
-                    {/* Capture Frame Button */}
-                    <button
-                      type="button"
-                      onClick={captureFrame}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors shadow-md"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>フレームをキャプチャ</span>
-                    </button>
                   </div>
                 </div>
               )}
@@ -411,12 +388,23 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">出演者</label>
+              <label className="text-xs text-slate-400 mb-1 block">主演</label>
               <input
                 type="text"
                 value={cast}
                 onChange={(e) => setCast(e.target.value)}
                 placeholder="例: 山田太郎, 鈴木花子"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">主演（ふりがな）</label>
+              <input
+                type="text"
+                value={castKana}
+                onChange={(e) => setCastKana(e.target.value)}
+                placeholder="例: やまだたろう, すずきはなこ"
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>
@@ -446,6 +434,17 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
             <div className="md:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
               <span className="text-sm text-slate-300 font-medium">評価 (5段階)</span>
               <RatingStars rating={rating} onChange={setRating} size="lg" />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 mb-1 block">タグ</label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="例: 4K, お気に入り, 名作 (カンマ区切り)"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
             </div>
 
             {settings?.custom_field_1_name && (

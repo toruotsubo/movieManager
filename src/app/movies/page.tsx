@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-type SortKey = 'title' | 'genre' | 'cast' | 'release' | 'rating';
+type SortKey = 'title' | 'genre' | 'cast' | 'release';
 
 const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string => {
   const base = ALL_BASE_FIELDS.find((f) => f.id === keyId);
@@ -39,8 +39,9 @@ function MoviesContent() {
   const searchParams = useSearchParams();
   const filterSignature = searchParams.get('filter');
 
-  const [sortKey, setSortKey] = useState<SortKey>('rating');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortKey, setSortKey] = useState<SortKey>('title');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
 
   const keyFields = settings?.key_fields || [];
   const keyFieldId = keyFields.length > 0 ? keyFields[0] : 'genre';
@@ -66,15 +67,21 @@ function MoviesContent() {
   }, [filterValues]);
 
   const filteredMovies = useMemo(() => {
-    if (!filterValues) return movies;
-    return movies.filter((movie) => {
-      for (const [k, v] of Object.entries(filterValues)) {
-        const values = getSplitValues((movie as any)[k]);
-        if (!values.includes(v)) return false;
-      }
-      return true;
-    });
-  }, [movies, filterValues]);
+    let result = movies;
+    if (filterValues) {
+      result = result.filter((movie) => {
+        for (const [k, v] of Object.entries(filterValues)) {
+          const values = getSplitValues((movie as any)[k]);
+          if (!values.includes(v)) return false;
+        }
+        return true;
+      });
+    }
+    if (ratingFilter !== 'all') {
+      result = result.filter((movie) => movie.rating === ratingFilter);
+    }
+    return result;
+  }, [movies, filterValues, ratingFilter]);
 
   const sortedMovies = useMemo(() => {
     return [...filteredMovies].sort((a, b) => {
@@ -84,7 +91,9 @@ function MoviesContent() {
       } else if (sortKey === 'genre') {
         result = (a.genre || '').localeCompare(b.genre || '');
       } else if (sortKey === 'cast') {
-        result = (a.cast || '').localeCompare(b.cast || '');
+        const aVal = a.cast_kana || a.cast || '';
+        const bVal = b.cast_kana || b.cast || '';
+        result = aVal.localeCompare(bVal, 'ja');
       } else if (sortKey === 'release') {
         const aYear = a.release_year || 0;
         const bYear = b.release_year || 0;
@@ -93,8 +102,6 @@ function MoviesContent() {
         } else {
           result = (a.release_date || '').localeCompare(b.release_date || '');
         }
-      } else if (sortKey === 'rating') {
-        result = a.rating - b.rating;
       }
       return sortOrder === 'desc' ? -result : result;
     });
@@ -105,7 +112,7 @@ function MoviesContent() {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortKey(key);
-      setSortOrder('desc');
+      setSortOrder('asc');
     }
   };
 
@@ -120,7 +127,7 @@ function MoviesContent() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <List className="w-7 h-7 text-blue-400" />
@@ -131,44 +138,80 @@ function MoviesContent() {
           </p>
         </div>
 
-        {/* Filter Indicator / Clear Button */}
-        {filterSignature && (
-          <button
-            onClick={() => router.push('/movies')}
-            className="flex items-center gap-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/40 px-3.5 py-2 rounded-xl text-xs font-medium transition-colors"
-            title="絞り込み解除"
-          >
-            <span>絞り込み解除</span>
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-
-        {/* Sort Bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-400 mr-1 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" /> ソート:
-          </span>
-          {[
-            { id: 'rating', label: '評価' },
-            { id: 'title', label: 'タイトル' },
-            { id: 'release', label: '公開年月日' },
-            { id: 'genre', label: 'カテゴリ' },
-            { id: 'cast', label: '出演者' },
-          ].map((item) => (
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Key Item Filter Indicator / Clear Button */}
+          {filterSignature && (
             <button
-              key={item.id}
-              onClick={() => toggleSort(item.id as SortKey)}
-              className={clsx(
-                'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-                sortKey === item.id
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-400'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-              )}
+              onClick={() => router.push('/movies')}
+              className="flex items-center gap-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              title="キー項目絞り込み解除"
             >
-              <span>{item.label}</span>
-              {sortKey === item.id && <ArrowUpDown className="w-3 h-3" />}
+              <span>絞り込み解除</span>
+              <X className="w-3.5 h-3.5" />
             </button>
-          ))}
+          )}
+
+          {/* Rating Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5" /> 評価絞り込み:
+            </span>
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+              <button
+                onClick={() => setRatingFilter('all')}
+                className={clsx(
+                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+                  ratingFilter === 'all'
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200'
+                )}
+              >
+                すべて
+              </button>
+              {[5, 4, 3, 2, 1].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRatingFilter(r)}
+                  className={clsx(
+                    'px-2 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-0.5',
+                    ratingFilter === r
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  )}
+                >
+                  <span className="text-amber-400">★</span>
+                  <span>{r}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sort Bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-400 flex items-center gap-1">
+              <ArrowUpDown className="w-3.5 h-3.5" /> ソート:
+            </span>
+            {[
+              { id: 'title', label: 'タイトル' },
+              { id: 'release', label: '公開年月日' },
+              { id: 'genre', label: 'カテゴリ' },
+              { id: 'cast', label: '主演' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => toggleSort(item.id as SortKey)}
+                className={clsx(
+                  'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                  sortKey === item.id
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                )}
+              >
+                <span>{item.label}</span>
+                {sortKey === item.id && <ArrowUpDown className="w-3 h-3" />}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -191,7 +234,14 @@ function MoviesContent() {
           return (
             <div
               key={movie.id}
-              onClick={() => router.push(`/movies/detail?id=${movie.id}`)}
+              onClick={() => {
+                const params = new URLSearchParams();
+                params.set('id', movie.id.toString());
+                if (filterSignature) {
+                  params.set('filter', filterSignature);
+                }
+                router.push(`/movies/detail?${params.toString()}`);
+              }}
               className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer group flex flex-col justify-between border border-slate-800"
             >
               {/* Summary Image (720x405 Aspect Ratio) */}
@@ -265,6 +315,25 @@ function MoviesContent() {
                         <span className="text-slate-300">
                           {formatReleaseDate(movie.release_year, movie.release_date)}
                         </span>
+                      </div>
+                    )}
+
+                    {/* Tags */}
+                    {movie.tags && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {getSplitValues(movie.tags).slice(0, 3).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded bg-blue-600/10 text-blue-400 text-[10px] font-medium border border-blue-500/20"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                        {getSplitValues(movie.tags).length > 3 && (
+                          <span className="text-[10px] text-slate-500 self-center">
+                            +{getSplitValues(movie.tags).length - 3}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

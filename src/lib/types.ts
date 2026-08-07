@@ -15,10 +15,12 @@ export interface Movie {
   title: string | null;
   genre: string | null;
   cast: string | null;
+  cast_kana: string | null;
   release_year: number | null;
   release_date: string | null; // MM-DD
   rating: number; // 1 to 5
   comment: string | null;
+  tags?: string | null;
   custom_field_1: string | null;
   custom_field_2: string | null;
   custom_field_3: string | null;
@@ -30,9 +32,17 @@ export interface Movie {
 export interface KeyItemGroup {
   key_signature: string; // JSON string e.g. {"genre":"Action","cast":"ActorA"}
   key_values: Record<string, string>; // e.g. { genre: "Action", cast: "ActorA" }
+  sort_key?: string;
   summary_image_path: string | null;
   rating: number; // Key item rating (1-5)
   movie_count: number;
+  tags?: string | null;
+}
+
+export interface UpdateKeyItemInput {
+  key_signature: string;
+  cast_kana?: string | null;
+  tags?: string | null;
 }
 
 export interface CreateMovieInput {
@@ -42,10 +52,12 @@ export interface CreateMovieInput {
   title?: string | null;
   genre?: string | null;
   cast?: string | null;
+  cast_kana?: string | null;
   release_year?: number | null;
   release_date?: string | null;
   rating?: number;
   comment?: string | null;
+  tags?: string | null;
   custom_field_1?: string | null;
   custom_field_2?: string | null;
   custom_field_3?: string | null;
@@ -60,7 +72,7 @@ export interface UpdateMovieInput extends Partial<CreateMovieInput> {
 export const ALL_BASE_FIELDS = [
   { id: 'title', label: 'タイトル' },
   { id: 'genre', label: 'カテゴリ' },
-  { id: 'cast', label: '出演者' },
+  { id: 'cast', label: '主演' },
   { id: 'release_year', label: '公開年' },
   { id: 'release_date', label: '公開月日' },
   { id: 'rating', label: '評価' },
