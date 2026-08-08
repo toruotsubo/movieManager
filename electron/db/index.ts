@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput, UpdateKeyItemInput } from '../../src/lib/types';
-import { getSplitValues } from '../../src/lib/utils';
+import { getSplitValues, getKanaForCast } from '../../src/lib/utils';
 
 interface JsonDatabaseSchema {
   settings: AppSettings;
@@ -220,15 +220,10 @@ export function getKeyItemGroups(): KeyItemGroup[] {
       let foundKana = '';
 
       for (const movie of group.movies) {
-        if (!movie.cast || !movie.cast_kana) continue;
-        const castSplits = getSplitValues(movie.cast);
-        const kanaSplits = getSplitValues(movie.cast_kana);
-        const idx = castSplits.findIndex((c) => c === targetCastVal);
-        if (idx !== -1 && kanaSplits[idx]) {
-          foundKana = kanaSplits[idx].trim();
+        const kana = getKanaForCast(movie.cast, movie.cast_kana, targetCastVal);
+        if (kana) {
+          foundKana = kana;
           break;
-        } else if (!foundKana && kanaSplits.length > 0) {
-          foundKana = kanaSplits[0].trim();
         }
       }
 
@@ -273,6 +268,16 @@ export function updateKeyItemDetails(input: UpdateKeyItemInput): void {
     const keyFields = settings.key_fields;
     const movies = jsonDb!.movies;
 
+    let targetCastVal: string | null = null;
+    try {
+      const parsedKeyValues = JSON.parse(key_signature);
+      if (parsedKeyValues && typeof parsedKeyValues === 'object' && parsedKeyValues.cast) {
+        targetCastVal = parsedKeyValues.cast;
+      }
+    } catch (e) {
+      console.error('Failed to parse key_signature in updateKeyItemDetails:', e);
+    }
+
     for (const movie of movies) {
       let combinations: Record<string, string>[] = [{}];
       for (const kf of keyFields) {
@@ -288,7 +293,26 @@ export function updateKeyItemDetails(input: UpdateKeyItemInput): void {
 
       const isMatch = combinations.some((comb) => JSON.stringify(comb) === key_signature);
       if (isMatch) {
-        movie.cast_kana = cast_kana;
+        if (targetCastVal && movie.cast) {
+          const castSplits = movie.cast.split(/[,|、|，]/).map((s) => s.trim()).filter(Boolean);
+          const kanaSplits = movie.cast_kana ? movie.cast_kana.split(/[,|、|，]/).map((s) => s.trim()).filter(Boolean) : [];
+          const idx = castSplits.findIndex((c) => c === targetCastVal!.trim());
+
+          if (idx !== -1) {
+            const updatedKanaSplits = [...kanaSplits];
+            while (updatedKanaSplits.length <= idx) {
+              const lastKana = updatedKanaSplits.length > 0 ? updatedKanaSplits[updatedKanaSplits.length - 1] : '';
+              updatedKanaSplits.push(lastKana);
+            }
+            updatedKanaSplits[idx] = cast_kana || '';
+            movie.cast_kana = updatedKanaSplits.join(',');
+          } else {
+            movie.cast_kana = cast_kana;
+          }
+        } else {
+          movie.cast_kana = cast_kana;
+        }
+
         movie.updated_at = new Date().toISOString();
       }
     }

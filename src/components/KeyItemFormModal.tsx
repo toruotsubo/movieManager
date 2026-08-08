@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { KeyItemGroup } from '@/lib/types';
+import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
+import { useApp } from '@/components/AppProvider';
 import { X, Save, Tag, User } from 'lucide-react';
 
 interface KeyItemFormModalProps {
@@ -12,6 +13,17 @@ interface KeyItemFormModalProps {
   onClose: () => void;
 }
 
+const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string => {
+  const base = ALL_BASE_FIELDS.find((f) => f.id === keyId);
+  if (base) return base.label;
+
+  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || 'ユーザー定義項目1';
+  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || 'ユーザー定義項目2';
+  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || 'ユーザー定義項目3';
+
+  return 'キー項目';
+};
+
 export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
   isOpen,
   group,
@@ -19,6 +31,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const { settings } = useApp();
   const [castKana, setCastKana] = useState('');
   const [tags, setTags] = useState('');
   const [saving, setSaving] = useState(false);
@@ -35,10 +48,12 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
       setCastKana(initialCastKana || '');
       setTags(group.tags || '');
     }
-  }, [isOpen, group]);
+  }, [isOpen, group, initialCastKana]);
 
   if (!isOpen || !group) return null;
 
+  const keyFieldId = settings?.key_fields && settings.key_fields.length > 0 ? settings.key_fields[0] : 'genre';
+  const keyLabel = getKeyFieldLabel(keyFieldId, settings);
   const titleString = Object.values(group.key_values).join(' / ');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,11 +81,8 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-              キー項目編集
+              {keyLabel}編集
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-sm">
-              {titleString}
-            </p>
           </div>
           <button
             onClick={onClose}
@@ -85,7 +97,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           {/* Key Value Display */}
           <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-1">
             <span className="font-semibold text-slate-400 block uppercase tracking-wider text-[10px]">
-              対象キー項目
+              対象
             </span>
             <div className="text-sm font-bold text-blue-400">
               {titleString}
@@ -106,7 +118,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
             />
             <p className="text-[11px] text-slate-500">
-              ※このキー項目に紐づくすべての動画の「主演（ふりがな）」に反映されます。
+              ※{titleString}のすべての動画データに反映されます。
             </p>
           </div>
 
@@ -114,7 +126,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
               <Tag className="w-4 h-4 text-emerald-400" />
-              <span>タグ （キー項目専用）</span>
+              <span>タグ （{keyLabel}専用）</span>
             </label>
             <input
               type="text"
@@ -123,9 +135,6 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
               placeholder="例: アクション, 主演作, オススメ"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
             />
-            <p className="text-[11px] text-slate-500">
-              ※キー項目専用のタグ情報です。
-            </p>
           </div>
 
           {/* Actions */}

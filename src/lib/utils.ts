@@ -74,3 +74,28 @@ export function formatReleaseDate(year?: number | null, dateStr?: string | null)
   return `${yearPart}${datePart}` || '-';
 }
 
+export function getKanaForCast(
+  cast: string | null | undefined,
+  castKana: string | null | undefined,
+  targetCastVal: string
+): string | null {
+  if (!cast || !castKana) return null;
+
+  const castSplits = cast.split(/[,|、|，]/).map((s) => s.trim()).filter(Boolean);
+  const kanaSplits = castKana.split(/[,|、|，]/).map((s) => s.trim()).filter(Boolean);
+
+  if (castSplits.length === 0 || kanaSplits.length === 0) return null;
+
+  const idx = castSplits.findIndex((c) => c === targetCastVal.trim());
+  if (idx !== -1) {
+    if (idx < kanaSplits.length) {
+      return kanaSplits[idx];
+    } else {
+      // 主演の数に主演ふりがなが足りないときは、直前のふりがな（末尾のふりがな）を使う
+      return kanaSplits[kanaSplits.length - 1];
+    }
+  }
+
+  return null;
+}
+

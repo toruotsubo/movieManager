@@ -18,10 +18,11 @@ import {
   X,
   FileText,
   Edit,
+  Tag,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-type SortKey = 'title' | 'genre' | 'cast' | 'release';
+type SortKey = 'title' | 'genre' | 'key_field' | 'release';
 
 const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string => {
   const base = ALL_BASE_FIELDS.find((f) => f.id === keyId);
@@ -43,6 +44,7 @@ function MoviesContent() {
   const [sortKey, setSortKey] = useState<SortKey>('title');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
+  const [tagFilter, setTagFilter] = useState<string>('all');
 
   const keyFields = settings?.key_fields || [];
   const keyFieldId = keyFields.length > 0 ? keyFields[0] : 'genre';
@@ -67,6 +69,17 @@ function MoviesContent() {
     return '動画一覧';
   }, [filterValues]);
 
+  // Extract all unique tags across movies
+  const availableTags = useMemo(() => {
+    return Array.from(
+      new Set(
+        movies.flatMap((m) =>
+          m.tags ? getSplitValues(m.tags) : []
+        )
+      )
+    ).sort((a, b) => a.localeCompare(b, 'ja'));
+  }, [movies]);
+
   const filteredMovies = useMemo(() => {
     // Exclude sibling movies (movies with a parent_movie_id)
     let result = movies.filter((movie) => !movie.parent_movie_id);
@@ -82,8 +95,15 @@ function MoviesContent() {
     if (ratingFilter !== 'all') {
       result = result.filter((movie) => movie.rating === ratingFilter);
     }
+    if (tagFilter !== 'all') {
+      result = result.filter((movie) => {
+        if (!movie.tags) return false;
+        const tags = getSplitValues(movie.tags);
+        return tags.includes(tagFilter);
+      });
+    }
     return result;
-  }, [movies, filterValues, ratingFilter]);
+  }, [movies, filterValues, ratingFilter, tagFilter]);
 
   const sortedMovies = useMemo(() => {
     return [...filteredMovies].sort((a, b) => {
@@ -92,10 +112,24 @@ function MoviesContent() {
         result = (a.title || '').localeCompare(b.title || '');
       } else if (sortKey === 'genre') {
         result = (a.genre || '').localeCompare(b.genre || '');
-      } else if (sortKey === 'cast') {
-        const aVal = a.cast_kana || a.cast || '';
-        const bVal = b.cast_kana || b.cast || '';
-        result = aVal.localeCompare(bVal, 'ja');
+      } else if (sortKey === 'key_field') {
+        if (keyFieldId === 'cast') {
+          const aVal = a.cast_kana || a.cast || '';
+          const bVal = b.cast_kana || b.cast || '';
+          result = aVal.localeCompare(bVal, 'ja');
+        } else if (keyFieldId === 'release_year' || keyFieldId === 'release_date') {
+          const aYear = a.release_year || 0;
+          const bYear = b.release_year || 0;
+          if (aYear !== bYear) {
+            result = aYear - bYear;
+          } else {
+            result = (a.release_date || '').localeCompare(b.release_date || '');
+          }
+        } else {
+          const aVal = String((a as any)[keyFieldId] || '');
+          const bVal = String((b as any)[keyFieldId] || '');
+          result = aVal.localeCompare(bVal, 'ja');
+        }
       } else if (sortKey === 'release') {
         const aYear = a.release_year || 0;
         const bYear = b.release_year || 0;
@@ -107,7 +141,7 @@ function MoviesContent() {
       }
       return sortOrder === 'desc' ? -result : result;
     });
-  }, [filteredMovies, sortKey, sortOrder]);
+  }, [filteredMovies, sortKey, sortOrder, keyFieldId]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -118,6 +152,15 @@ function MoviesContent() {
     }
   };
 
+  const handleKeyItemClick = (fieldId: string, val: string | number) => {
+    if (!val || val === '未指定') return;
+    const keySigObj: Record<string, string> = { [fieldId]: String(val) };
+    const filterSig = JSON.stringify(keySigObj);
+    const params = new URLSearchParams();
+    params.set('filter', filterSig);
+    router.push(`/movies?${params.toString()}`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -125,6 +168,15 @@ function MoviesContent() {
       </div>
     );
   }
+
+  const sortItems: { id: SortKey; label: string }[] = [
+    { id: 'title', label: 'タイトル' },
+    { id: 'genre', label: 'カテゴリ' },
+    ...(keyFieldId !== 'title' && keyFieldId !== 'genre' && keyFieldId !== 'release_year' && keyFieldId !== 'release_date'
+      ? [{ id: 'key_field' as SortKey, label: keyLabel }]
+      : []),
+    { id: 'release', label: '公開年月日' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -153,39 +205,46 @@ function MoviesContent() {
             </button>
           )}
 
-          {/* Rating Filter */}
+          {/* Tag Filter Controls */}
+          {availableTags.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 flex items-center gap-1">
+                <Tag className="w-3.5 h-3.5 text-emerald-400" /> タグ:
+              </span>
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+              >
+                <option value="all">すべて</option>
+                {availableTags.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Rating Filter Controls */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> 評価絞り込み:
+              <Filter className="w-3.5 h-3.5" /> 評価:
             </span>
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
-              <button
-                onClick={() => setRatingFilter('all')}
-                className={clsx(
-                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  ratingFilter === 'all'
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                )}
-              >
-                すべて
-              </button>
+            <select
+              value={ratingFilter}
+              onChange={(e) =>
+                setRatingFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+              }
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+            >
+              <option value="all">すべて</option>
               {[5, 4, 3, 2, 1].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRatingFilter(r)}
-                  className={clsx(
-                    'px-2 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-0.5',
-                    ratingFilter === r
-                      ? 'bg-blue-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
-                  )}
-                >
-                  <span className="text-amber-400">★</span>
-                  <span>{r}</span>
-                </button>
+                <option key={r} value={r}>
+                  ★{r}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Sort Bar */}
@@ -193,15 +252,10 @@ function MoviesContent() {
             <span className="text-xs text-slate-400 flex items-center gap-1">
               <ArrowUpDown className="w-3.5 h-3.5" /> ソート:
             </span>
-            {[
-              { id: 'title', label: 'タイトル' },
-              { id: 'release', label: '公開年月日' },
-              { id: 'genre', label: 'カテゴリ' },
-              { id: 'cast', label: '主演' },
-            ].map((item) => (
+            {sortItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => toggleSort(item.id as SortKey)}
+                onClick={() => toggleSort(item.id)}
                 className={clsx(
                   'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                   sortKey === item.id
@@ -224,7 +278,11 @@ function MoviesContent() {
             <Film className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-semibold text-slate-200">動画がありません</h3>
-          <p className="text-sm text-slate-400">画面上に動画ファイルをドロップして追加してください。</p>
+          <p className="text-sm text-slate-400 max-w-md mx-auto">
+            {tagFilter !== 'all' || ratingFilter !== 'all' || filterSignature
+              ? '絞り込み条件を変更して再度ご確認ください。'
+              : '画面上に動画ファイルをドロップして追加してください。'}
+          </p>
         </div>
       )}
 
@@ -278,7 +336,21 @@ function MoviesContent() {
                       <div className="flex items-center gap-2">
                         <FileText className="w-3.5 h-3.5 text-blue-400" />
                         <span className="text-slate-300 font-medium">
-                          {keyLabel}: {(movie as any)[keyFieldId] || '未指定'}
+                          {keyLabel}:{' '}
+                          {(movie as any)[keyFieldId] ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleKeyItemClick(keyFieldId, (movie as any)[keyFieldId]);
+                              }}
+                              className="text-blue-400 hover:underline font-semibold cursor-pointer"
+                              title={`${keyLabel}「${(movie as any)[keyFieldId]}」で絞り込み`}
+                            >
+                              {(movie as any)[keyFieldId]}
+                            </button>
+                          ) : (
+                            '未指定'
+                          )}
                         </span>
                       </div>
                     )}
@@ -287,7 +359,31 @@ function MoviesContent() {
                     {!(isFromKeyItemsPage && keyFields.includes('genre')) && (
                       <div className="flex items-center gap-2">
                         <Shapes className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="text-slate-300">{movie.genre || '未指定'}</span>
+                        {movie.genre ? (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {getSplitValues(movie.genre).map((gVal, idx) => (
+                              <React.Fragment key={idx}>
+                                {idx > 0 && <span className="text-slate-500">,</span>}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleKeyItemClick('genre', gVal);
+                                  }}
+                                  className={clsx(
+                                    keyFields.includes('genre')
+                                      ? 'text-blue-400 hover:underline font-semibold cursor-pointer'
+                                      : 'text-slate-300 hover:text-blue-300 hover:underline cursor-pointer'
+                                  )}
+                                  title={`カテゴリ「${gVal}」で絞り込み`}
+                                >
+                                  {gVal}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300">未指定</span>
+                        )}
                       </div>
                     )}
 
@@ -295,7 +391,31 @@ function MoviesContent() {
                     {!(isFromKeyItemsPage && keyFields.includes('cast')) && (
                       <div className="flex items-center gap-2">
                         <User className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="text-slate-300">{movie.cast || '未指定'}</span>
+                        {movie.cast ? (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {getSplitValues(movie.cast).map((cVal, idx) => (
+                              <React.Fragment key={idx}>
+                                {idx > 0 && <span className="text-slate-500">,</span>}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleKeyItemClick('cast', cVal);
+                                  }}
+                                  className={clsx(
+                                    keyFields.includes('cast')
+                                      ? 'text-blue-400 hover:underline font-semibold cursor-pointer'
+                                      : 'text-slate-300 hover:text-blue-300 hover:underline cursor-pointer'
+                                  )}
+                                  title={`主演「${cVal}」で絞り込み`}
+                                >
+                                  {cVal}
+                                </button>
+                              </React.Fragment>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-300">未指定</span>
+                        )}
                       </div>
                     )}
 
@@ -303,28 +423,50 @@ function MoviesContent() {
                     {!(isFromKeyItemsPage && (keyFields.includes('release_year') || keyFields.includes('release_date'))) && (
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="text-slate-300">
-                          {formatReleaseDate(movie.release_year, movie.release_date)}
-                        </span>
+                        {movie.release_year ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleKeyItemClick('release_year', movie.release_year!);
+                            }}
+                            className={clsx(
+                              keyFields.includes('release_year') || keyFields.includes('release_date')
+                                ? 'text-blue-400 hover:underline font-semibold cursor-pointer'
+                                : 'text-slate-300 hover:text-blue-300 hover:underline cursor-pointer'
+                            )}
+                            title={`公開年「${movie.release_year}年」で絞り込み`}
+                          >
+                            {formatReleaseDate(movie.release_year, movie.release_date)}
+                          </button>
+                        ) : (
+                          <span className="text-slate-300">
+                            {formatReleaseDate(movie.release_year, movie.release_date)}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Tags */}
+                    {/* Tags Display */}
                     {movie.tags && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {getSplitValues(movie.tags).slice(0, 3).map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-0.5 rounded bg-blue-600/10 text-blue-400 text-[10px] font-medium border border-blue-500/20"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                        {getSplitValues(movie.tags).length > 3 && (
-                          <span className="text-[10px] text-slate-500 self-center">
-                            +{getSplitValues(movie.tags).length - 3}
-                          </span>
-                        )}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <Tag className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                        {getSplitValues(movie.tags).map((tag, idx) => {
+                          const isSelected = tagFilter === tag;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => setTagFilter(isSelected ? 'all' : tag)}
+                              className={clsx(
+                                'px-2 py-0.5 rounded-md border text-[11px] font-medium transition-colors cursor-pointer',
+                                isSelected
+                                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-semibold'
+                                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
+                              )}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -356,7 +498,7 @@ function MoviesContent() {
                       }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors"
                     >
-                      <span>動画詳細画面</span>
+                      <span>動画詳細</span>
                     </button>
                   </div>
                 </div>

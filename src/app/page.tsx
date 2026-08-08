@@ -5,7 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { ArrowUpDown, Film, LayoutGrid, ChevronRight, Filter, Pencil, Tag } from 'lucide-react';
+import { ArrowUpDown, Film, LayoutGrid, Filter, Edit, Tag } from 'lucide-react';
 import { clsx } from 'clsx';
 import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
 
@@ -97,7 +97,7 @@ export default function KeyItemsPage() {
                 onChange={(e) => setTagFilter(e.target.value)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
               >
-                <option value="all">すべてのタグ</option>
+                <option value="all">すべて</option>
                 {availableTags.map((tag) => (
                   <option key={tag} value={tag}>
                     {tag}
@@ -110,36 +110,22 @@ export default function KeyItemsPage() {
           {/* Rating Filter Controls */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> 評価絞り込み:
+              <Filter className="w-3.5 h-3.5" /> 評価:
             </span>
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
-              <button
-                onClick={() => setRatingFilter('all')}
-                className={clsx(
-                  'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
-                  ratingFilter === 'all'
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                )}
-              >
-                すべて
-              </button>
+            <select
+              value={ratingFilter}
+              onChange={(e) =>
+                setRatingFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+              }
+              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+            >
+              <option value="all">すべて</option>
               {[5, 4, 3, 2, 1].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRatingFilter(r)}
-                  className={clsx(
-                    'px-2 py-1 rounded-md text-xs font-medium transition-colors flex items-center gap-0.5',
-                    ratingFilter === r
-                      ? 'bg-blue-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
-                  )}
-                >
-                  <span className="text-amber-400">★</span>
-                  <span>{r}</span>
-                </button>
+                <option key={r} value={r}>
+                  ★{r}
+                </option>
               ))}
-            </div>
+            </select>
           </div>
 
           {/* Sort Controls */}
@@ -244,7 +230,6 @@ export default function KeyItemsPage() {
 
                 <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">評価:</span>
                     <RatingStars
                       rating={group.rating}
                       onChange={(newRating) => updateKeyItemRating(group.key_signature, newRating)}
@@ -254,19 +239,18 @@ export default function KeyItemsPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openEditKeyItemModal(group)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 text-xs font-medium transition-colors cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors cursor-pointer"
                       title="キー項目を編集"
                     >
-                      <Pencil className="w-3.5 h-3.5 text-slate-400" />
+                      <Edit className="w-3.5 h-3.5 text-blue-400" />
                       <span>編集</span>
                     </button>
 
                     <button
                       onClick={() => handleRowClick(group)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 hover:border-blue-500/50 text-xs font-medium transition-colors cursor-pointer"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors cursor-pointer"
                     >
                       <span>動画一覧</span>
-                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

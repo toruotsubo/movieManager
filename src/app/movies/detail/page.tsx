@@ -27,33 +27,51 @@ const extractNumber = (m: Movie, settings: AppSettings | null): number => {
     { key: 'custom_field_3', name: settings?.custom_field_3_name },
   ];
 
-  // 1. Check custom fields with names including "番号", "No", "#", or "vol"
+  // 1. Check custom fields with names explicitly for number/vol/no/#/話/巻/回
   for (const cfg of customFieldConfigs) {
-    if (cfg.name && /(番号|No|#|vol)/i.test(cfg.name)) {
-      const val = (m as any)[cfg.key];
-      if (val) {
-        const parsed = parseInt(val, 10);
-        if (!isNaN(parsed)) return parsed;
+    if (cfg.name && /(番号|No|#|vol|話|巻|回)/i.test(cfg.name)) {
+      const val = String((m as any)[cfg.key] || '');
+      const match = val.match(/\d+/);
+      if (match) {
+        return parseInt(match[0], 10);
       }
     }
   }
 
-  // 2. Check any custom field value if purely numeric
-  for (const cfg of customFieldConfigs) {
-    const val = (m as any)[cfg.key];
-    if (val) {
-      const parsed = parseInt(val, 10);
-      if (!isNaN(parsed)) return parsed;
+  // 2. Parse episode/sequence number from title or file_name
+  const textSources = [m.title, m.file_name].filter(Boolean) as string[];
+  for (const text of textSources) {
+    // Remove file extension (e.g. .mp4)
+    const cleanText = text.replace(/\.[^/.]+$/, '');
+
+    // Pattern A: Number after prefix indicators e.g. ep1, vol.2, #3, 第4話, _05, -6
+    const patternA = /(?:vol|ep|no|#|第|話|巻|回|[_\-\s])\s*(\d+)/i;
+    const matchA = cleanText.match(patternA);
+    if (matchA && matchA[1]) {
+      return parseInt(matchA[1], 10);
+    }
+
+    // Pattern B: Last numeric segment in filename/title (e.g. "Title_20260808_02" -> 2)
+    const matches = cleanText.match(/\d+/g);
+    if (matches && matches.length > 0) {
+      const lastNumStr = matches[matches.length - 1];
+      return parseInt(lastNumStr, 10);
     }
   }
 
-  // 3. Fallback: parse number from title or file_name
-  const titleText = m.title || m.file_name || '';
-  const match = titleText.match(/\d+/);
-  if (match) {
-    return parseInt(match[0], 10);
+  // 3. Check any custom field value for numbers (skipping year-like large numbers > 1000)
+  for (const cfg of customFieldConfigs) {
+    const val = String((m as any)[cfg.key] || '');
+    const match = val.match(/\d+/);
+    if (match) {
+      const num = parseInt(match[0], 10);
+      if (num < 1000) {
+        return num;
+      }
+    }
   }
 
+  // 4. Fallback: ID
   return m.id;
 };
 
@@ -78,25 +96,50 @@ function MovieDetailContent() {
 
   const groupMovies = useMemo(() => {
     if (!movie) return [];
+
+    const keyFields = settings?.key_fields || ['genre'];
     const parentId = movie.parent_movie_id || (movie.is_grouped ? movie.id : null);
-    if (!parentId) return [];
 
-    const matches = movies.filter(
-      (m) => m.id === parentId || m.parent_movie_id === parentId
-    );
+    const matches = movies.filter((m) => {
+      // 1. Check parent-child relationships
+      if (parentId && (m.id === parentId || m.parent_movie_id === parentId)) {
+        return true;
+      }
+      if (m.parent_movie_id === movie.id || movie.parent_movie_id === m.id) {
+        return true;
+      }
 
-    return matches.sort((a, b) => {
+      // 2. Check matching attributes if both are grouped
+      if (movie.is_grouped && m.is_grouped) {
+        if ((m.title || null) !== (movie.title || null)) return false;
+        if ((m.genre || null) !== (movie.genre || null)) return false;
+        if ((m.release_year || null) !== (movie.release_year || null)) return false;
+        if ((m.release_date || null) !== (movie.release_date || null)) return false;
+
+        for (const kf of keyFields) {
+          if (((m as any)[kf] || null) !== ((movie as any)[kf] || null)) return false;
+        }
+        return true;
+      }
+
+      return false;
+    });
+
+    const uniqueMatches = Array.from(new Map(matches.map((m) => [m.id, m])).values());
+
+    return uniqueMatches.sort((a, b) => {
       const numA = extractNumber(a, settings);
       const numB = extractNumber(b, settings);
+
       if (numA !== numB) {
-        return numA - numB; // 昇順（左側から小さい順）
+        return numA - numB; // 昇順（左側から小さい順: 1, 2, 3...）
       }
-      const titleCompare = (a.title || a.file_name || '').localeCompare(
-        b.title || b.file_name || '',
-        'ja',
-        { numeric: true }
-      );
+
+      const titleA = a.title || a.file_name || '';
+      const titleB = b.title || b.file_name || '';
+      const titleCompare = titleA.localeCompare(titleB, 'ja', { numeric: true });
       if (titleCompare !== 0) return titleCompare;
+
       return a.id - b.id;
     });
   }, [movies, movie, settings]);
@@ -200,11 +243,10 @@ function MovieDetailContent() {
                   <div
                     key={gMovie.id}
                     onClick={() => openMoviePlayer(gMovie.file_path)}
-                    className={`relative aspect-video rounded-xl overflow-hidden bg-slate-950 border cursor-pointer group transition-all ${
-                      isCurrent
+                    className={`relative aspect-video rounded-xl overflow-hidden bg-slate-950 border cursor-pointer group transition-all ${isCurrent
                         ? 'border-blue-500 ring-2 ring-blue-500/50'
                         : 'border-slate-800 hover:border-slate-600'
-                    }`}
+                      }`}
                     title={`${gMovie.title || gMovie.file_name} - クリックで再生`}
                   >
                     {gImgSrc ? (
@@ -241,7 +283,7 @@ function MovieDetailContent() {
 
         {/* Rating Header */}
         <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-          <span className="text-sm font-semibold text-slate-200">この動画の評価</span>
+          <span className="text-sm font-semibold text-slate-200">評価</span>
           <RatingStars
             rating={movie.rating}
             onChange={(newRating) => updateMovieRating(movie.id, newRating)}
@@ -251,16 +293,6 @@ function MovieDetailContent() {
 
         {/* Metadata Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          {/* File Path */}
-          <div className="md:col-span-2 space-y-1">
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> 参照ファイルパス
-            </span>
-            <p className="text-sm font-mono bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-slate-300 break-all">
-              {movie.file_path}
-            </p>
-          </div>
-
           {/* Category (genre) */}
           <div className="space-y-1">
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
@@ -341,6 +373,16 @@ function MovieDetailContent() {
                 {movie.comment || '-'}
               </p>
             </div>
+          </div>
+
+          {/* File Path */}
+          <div className="md:col-span-2 space-y-1">
+            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5" /> 参照ファイルパス
+            </span>
+            <p className="text-sm font-mono bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-slate-300 break-all">
+              {movie.file_path}
+            </p>
           </div>
         </div>
       </div>

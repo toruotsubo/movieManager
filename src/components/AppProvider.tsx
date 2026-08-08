@@ -1,13 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AppSettings, Movie, KeyItemGroup, UpdateKeyItemInput } from '../lib/types';
+import { AppSettings, Movie, KeyItemGroup } from '../lib/types';
 import { Navbar } from './Navbar';
 import { InitialSetupModal } from './InitialSetupModal';
 import { MovieFormModal } from './MovieFormModal';
 import { KeyItemFormModal } from './KeyItemFormModal';
 import { DragDropWrapper } from './DragDropWrapper';
-import { getSplitValues } from '../lib/utils';
+import { getSplitValues, getKanaForCast } from '../lib/utils';
 
 interface AppContextType {
   settings: AppSettings | null;
@@ -277,12 +277,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               const isMatch = combinations.some((comb) => JSON.stringify(comb) === activeKeyGroup.key_signature);
               if (isMatch) {
                 if (targetCastVal && m.cast && m.cast_kana) {
-                  const castSplits = getSplitValues(m.cast);
-                  const kanaSplits = getSplitValues(m.cast_kana);
-                  const idx = castSplits.findIndex((c) => c === targetCastVal);
-                  if (idx !== -1 && kanaSplits[idx]) {
-                    return kanaSplits[idx].trim();
-                  }
+                  const kana = getKanaForCast(m.cast, m.cast_kana, targetCastVal);
+                  if (kana) return kana;
                 }
                 if (m.cast_kana) return m.cast_kana;
               }

@@ -115,15 +115,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   };
 
   const handleToggleGrouping = () => {
-    if (!isGrouped) {
-      const keyLabel = getKeyFieldsLabel();
-      const message = `タイトル、カテゴリ、${keyLabel}、公開年月日が同一の動画をグループ化します。`;
-      if (window.confirm(message)) {
-        setIsGrouped(true);
-      }
-    } else {
-      setIsGrouped(false);
-    }
+    setIsGrouped((prev) => !prev);
   };
 
   if (!isOpen || !movie) return null;
@@ -213,6 +205,11 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       if (captured) finalImagePath = captured;
     }
 
+    let formattedReleaseDate = releaseDate.trim().replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+    if (/^\d{4}$/.test(formattedReleaseDate)) {
+      formattedReleaseDate = `${formattedReleaseDate.slice(0, 2)}-${formattedReleaseDate.slice(2, 4)}`;
+    }
+
     onSave({
       ...movie,
       title: title.trim() || movie.file_name || '無題',
@@ -220,7 +217,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       cast: cast.trim() || null,
       cast_kana: castKana.trim() || null,
       release_year: releaseYear !== '' ? Number(releaseYear) : null,
-      release_date: releaseDate.trim() || null,
+      release_date: formattedReleaseDate || null,
       rating,
       comment: comment.trim() || null,
       tags: tags.trim() || null,
@@ -520,11 +517,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               <button
                 type="button"
                 onClick={handleToggleGrouping}
-                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                  isGrouped
+                className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${isGrouped
                     ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
                     : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                }`}
+                  }`}
               >
                 {isGrouped ? 'ON' : 'OFF'}
               </button>
