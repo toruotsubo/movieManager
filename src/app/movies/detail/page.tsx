@@ -20,60 +20,6 @@ import {
   Layers,
 } from 'lucide-react';
 
-const extractNumber = (m: Movie, settings: AppSettings | null): number => {
-  const customFieldConfigs = [
-    { key: 'custom_field_1', name: settings?.custom_field_1_name },
-    { key: 'custom_field_2', name: settings?.custom_field_2_name },
-    { key: 'custom_field_3', name: settings?.custom_field_3_name },
-  ];
-
-  // 1. Check custom fields with names explicitly for number/vol/no/#/話/巻/回
-  for (const cfg of customFieldConfigs) {
-    if (cfg.name && /(番号|No|#|vol|話|巻|回)/i.test(cfg.name)) {
-      const val = String((m as any)[cfg.key] || '');
-      const match = val.match(/\d+/);
-      if (match) {
-        return parseInt(match[0], 10);
-      }
-    }
-  }
-
-  // 2. Parse episode/sequence number from title or file_name
-  const textSources = [m.title, m.file_name].filter(Boolean) as string[];
-  for (const text of textSources) {
-    // Remove file extension (e.g. .mp4)
-    const cleanText = text.replace(/\.[^/.]+$/, '');
-
-    // Pattern A: Number after prefix indicators e.g. ep1, vol.2, #3, 第4話, _05, -6
-    const patternA = /(?:vol|ep|no|#|第|話|巻|回|[_\-\s])\s*(\d+)/i;
-    const matchA = cleanText.match(patternA);
-    if (matchA && matchA[1]) {
-      return parseInt(matchA[1], 10);
-    }
-
-    // Pattern B: Last numeric segment in filename/title (e.g. "Title_20260808_02" -> 2)
-    const matches = cleanText.match(/\d+/g);
-    if (matches && matches.length > 0) {
-      const lastNumStr = matches[matches.length - 1];
-      return parseInt(lastNumStr, 10);
-    }
-  }
-
-  // 3. Check any custom field value for numbers (skipping year-like large numbers > 1000)
-  for (const cfg of customFieldConfigs) {
-    const val = String((m as any)[cfg.key] || '');
-    const match = val.match(/\d+/);
-    if (match) {
-      const num = parseInt(match[0], 10);
-      if (num < 1000) {
-        return num;
-      }
-    }
-  }
-
-  // 4. Fallback: ID
-  return m.id;
-};
 
 function MovieDetailContent() {
   const searchParams = useSearchParams();
@@ -128,17 +74,10 @@ function MovieDetailContent() {
     const uniqueMatches = Array.from(new Map(matches.map((m) => [m.id, m])).values());
 
     return uniqueMatches.sort((a, b) => {
-      const numA = extractNumber(a, settings);
-      const numB = extractNumber(b, settings);
-
-      if (numA !== numB) {
-        return numA - numB; // 昇順（左側から小さい順: 1, 2, 3...）
-      }
-
-      const titleA = a.title || a.file_name || '';
-      const titleB = b.title || b.file_name || '';
-      const titleCompare = titleA.localeCompare(titleB, 'ja', { numeric: true });
-      if (titleCompare !== 0) return titleCompare;
+      const fileA = a.file_name || a.title || '';
+      const fileB = b.file_name || b.title || '';
+      const fileCompare = fileA.localeCompare(fileB, 'ja', { numeric: true });
+      if (fileCompare !== 0) return fileCompare;
 
       return a.id - b.id;
     });
@@ -230,14 +169,12 @@ function MovieDetailContent() {
                 <Layers className="w-4 h-4 text-blue-400" />
                 <span>グループ動画一覧 ({groupMovies.length}本)</span>
               </span>
-              <span className="text-[11px] text-slate-400">番号順表示・クリックで再生</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {groupMovies.map((gMovie) => {
                 const gImgSrc = formatMediaUrl(gMovie.summary_image_path);
                 const isCurrent = gMovie.id === movie.id;
-                const numLabel = extractNumber(gMovie, settings);
 
                 return (
                   <div
@@ -247,7 +184,7 @@ function MovieDetailContent() {
                         ? 'border-blue-500 ring-2 ring-blue-500/50'
                         : 'border-slate-800 hover:border-slate-600'
                       }`}
-                    title={`${gMovie.title || gMovie.file_name} - クリックで再生`}
+                    title="クリックで動画再生"
                   >
                     {gImgSrc ? (
                       <img
@@ -261,9 +198,7 @@ function MovieDetailContent() {
                       </div>
                     )}
 
-                    <div className="absolute top-1 left-1 bg-slate-950/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-blue-300 border border-blue-500/30">
-                      #{numLabel}
-                    </div>
+
 
                     {isCurrent && (
                       <div className="absolute top-1 right-1 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">

@@ -5,7 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl, getSplitValues, formatReleaseDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
+import { ALL_BASE_FIELDS, AppSettings, Movie } from '@/lib/types';
 import {
   List,
   Play,
@@ -142,6 +142,41 @@ function MoviesContent() {
       return sortOrder === 'desc' ? -result : result;
     });
   }, [filteredMovies, sortKey, sortOrder, keyFieldId]);
+
+  const groupCountMap = useMemo(() => {
+    const keyFields = settings?.key_fields || ['genre'];
+    const map = new Map<number, number>();
+
+    for (const movie of filteredMovies) {
+      const parentId = movie.parent_movie_id || (movie.is_grouped ? movie.id : null);
+      let count = 1;
+      if (parentId || movie.is_grouped) {
+        const matches = movies.filter((m) => {
+          if (parentId && (m.id === parentId || m.parent_movie_id === parentId)) {
+            return true;
+          }
+          if (m.parent_movie_id === movie.id || movie.parent_movie_id === m.id) {
+            return true;
+          }
+          if (movie.is_grouped && m.is_grouped) {
+            if ((m.title || null) !== (movie.title || null)) return false;
+            if ((m.genre || null) !== (movie.genre || null)) return false;
+            if ((m.release_year || null) !== (movie.release_year || null)) return false;
+            if ((m.release_date || null) !== (movie.release_date || null)) return false;
+
+            for (const kf of keyFields) {
+              if (((m as any)[kf] || null) !== ((movie as any)[kf] || null)) return false;
+            }
+            return true;
+          }
+          return false;
+        });
+        count = new Set(matches.map((m) => m.id)).size;
+      }
+      map.set(movie.id, count);
+    }
+    return map;
+  }, [filteredMovies, movies, settings]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -290,6 +325,7 @@ function MoviesContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sortedMovies.map((movie) => {
           const imageSrc = formatMediaUrl(movie.summary_image_path);
+          const groupCount = groupCountMap.get(movie.id) || 1;
 
           return (
             <div
@@ -312,6 +348,13 @@ function MoviesContent() {
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900">
                     <Film className="w-10 h-10 mb-1 opacity-40" />
                     <span className="text-xs">NO IMAGE</span>
+                  </div>
+                )}
+
+                {/* Group count badge */}
+                {groupCount > 1 && (
+                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 z-10">
+                    {groupCount} 本のグループ
                   </div>
                 )}
 
