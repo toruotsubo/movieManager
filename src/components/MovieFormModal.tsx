@@ -242,6 +242,14 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const handleDelete = async () => {
     if (!movie?.id) return;
     if (confirm('この動画を削除してもよろしいですか？')) {
+      // グループ化がONになっている場合、まずグループ化をOFFにする
+      if (isGrouped || movie.is_grouped || movie.parent_movie_id) {
+        await onSave({
+          ...movie,
+          is_grouped: false,
+          parent_movie_id: null,
+        });
+      }
       if (onDelete) {
         await onDelete(movie.id);
       }

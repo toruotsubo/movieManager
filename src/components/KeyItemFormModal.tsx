@@ -125,7 +125,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           {/* Tags Field (Key Item Specific) */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-emerald-400" />
+              <Tag className="w-4 h-4 text-slate-400" />
               <span>タグ （{keyLabel}専用）</span>
             </label>
             <input
@@ -133,7 +133,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="例: アクション, 主演作, オススメ"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
             />
           </div>
 

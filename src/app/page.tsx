@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl } from '@/lib/utils';
@@ -27,6 +27,38 @@ export default function KeyItemsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
   const [tagFilter, setTagFilter] = useState<string>('all');
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Restore filter/sort state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const savedStateStr = sessionStorage.getItem('movie_manager_key_items_page_state');
+      if (savedStateStr) {
+        const savedState = JSON.parse(savedStateStr);
+        if (savedState.sortOrder) setSortOrder(savedState.sortOrder);
+        if (savedState.ratingFilter !== undefined) setRatingFilter(savedState.ratingFilter);
+        if (savedState.tagFilter) setTagFilter(savedState.tagFilter);
+      }
+    } catch (e) {
+      console.error('Failed to load filter state from sessionStorage:', e);
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // Save filter/sort state to sessionStorage when changed
+  useEffect(() => {
+    if (!isInitialized) return;
+    try {
+      const stateToSave = {
+        sortOrder,
+        ratingFilter,
+        tagFilter,
+      };
+      sessionStorage.setItem('movie_manager_key_items_page_state', JSON.stringify(stateToSave));
+    } catch (e) {
+      console.error('Failed to save filter state to sessionStorage:', e);
+    }
+  }, [sortOrder, ratingFilter, tagFilter, isInitialized]);
 
   if (loading) {
     return (
@@ -90,12 +122,12 @@ export default function KeyItemsPage() {
           {availableTags.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-emerald-400" /> タグ:
+                <Tag className="w-3.5 h-3.5 text-slate-400" /> タグ:
               </span>
               <select
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
               >
                 <option value="all">すべて</option>
                 {availableTags.map((tag) => (
@@ -204,7 +236,7 @@ export default function KeyItemsPage() {
                   {/* Key Item Tags Display */}
                   {group.tags && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <Tag className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                       {group.tags.split(',').map((t, idx) => {
                         const trimmedTag = t.trim();
                         if (!trimmedTag) return null;
@@ -216,8 +248,8 @@ export default function KeyItemsPage() {
                             className={clsx(
                               'px-2 py-0.5 rounded-md border text-[11px] font-medium transition-colors cursor-pointer',
                               isSelected
-                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-semibold'
-                                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20'
+                                ? 'bg-blue-600 text-white border-blue-500 font-semibold shadow-sm'
+                                : 'bg-blue-600/20 border-blue-500/30 text-blue-300 hover:bg-blue-600/30'
                             )}
                           >
                             {trimmedTag}

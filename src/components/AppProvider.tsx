@@ -206,6 +206,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const handleDeleteMovie = async (id: number) => {
     if (window.api) {
+      // グループ化解除: 親動画に紐づく子動画のparent_movie_idをクリア
+      const currentMovies = await window.api.getMovies();
+      const siblings = currentMovies.filter((m) => m.parent_movie_id === id);
+      for (const sibling of siblings) {
+        await window.api.updateMovie({ id: sibling.id, parent_movie_id: null });
+      }
+
+      // 自身がグループ化されていた場合もグループ化を解除
+      const targetMovie = currentMovies.find((m) => m.id === id);
+      if (targetMovie && (targetMovie.is_grouped || targetMovie.parent_movie_id)) {
+        await window.api.updateMovie({ id, is_grouped: false, parent_movie_id: null });
+      }
+
       await window.api.deleteMovie(id);
       setMovies((prev) => prev.filter((m) => m.id !== id));
       await refreshData();
