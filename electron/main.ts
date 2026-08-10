@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, protocol, Menu, net } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import url from 'url';
 import {
   initDatabase,
   getAppSettings,
@@ -20,6 +21,17 @@ import {
 
 // Register scheme privileges before app is ready
 protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+      bypassCSP: true,
+    },
+  },
   {
     scheme: 'media',
     privileges: {
@@ -44,6 +56,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     title: 'Movie Manager',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -52,12 +65,52 @@ function createWindow() {
     },
   });
 
+  mainWindow.setMenu(null);
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../out/index.html'));
+    mainWindow.loadURL('app://localhost/');
   }
+}
+
+// Serve Next.js exported static files via app:// protocol
+function registerAppProtocol() {
+  protocol.handle('app', (request) => {
+    try {
+      const reqUrl = new URL(request.url);
+      let pathname = decodeURIComponent(reqUrl.pathname);
+
+      const outDir = path.join(__dirname, '../out');
+
+      if (pathname === '/' || pathname === '') {
+        pathname = '/index.html';
+      }
+
+      let filePath = path.join(outDir, pathname);
+
+      if (!fs.existsSync(filePath)) {
+        if (fs.existsSync(filePath + '.html')) {
+          filePath = filePath + '.html';
+        } else if (fs.existsSync(path.join(filePath, 'index.html'))) {
+          filePath = path.join(filePath, 'index.html');
+        } else {
+          filePath = path.join(outDir, 'index.html');
+        }
+      } else if (fs.statSync(filePath).isDirectory()) {
+        const indexPath = path.join(filePath, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          filePath = indexPath;
+        }
+      }
+
+      return net.fetch(url.pathToFileURL(filePath).toString());
+    } catch (error) {
+      console.error('Failed to handle app protocol:', error);
+      return new Response('Not Found', { status: 404 });
+    }
+  });
 }
 
 // Setup custom protocol for local media files using native File Protocol binding
@@ -90,6 +143,8 @@ function registerMediaProtocol() {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
+  registerAppProtocol();
   registerMediaProtocol();
   initDatabase();
   createWindow();

@@ -26,6 +26,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_electron2 = require("electron");
 var import_path2 = __toESM(require("path"));
 var import_fs2 = __toESM(require("fs"));
+var import_url = __toESM(require("url"));
 
 // electron/db/index.ts
 var import_path = __toESM(require("path"));
@@ -347,6 +348,17 @@ function resetAllData() {
 // electron/main.ts
 import_electron2.protocol.registerSchemesAsPrivileged([
   {
+    scheme: "app",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+      bypassCSP: true
+    }
+  },
+  {
     scheme: "media",
     privileges: {
       standard: true,
@@ -367,6 +379,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 700,
     title: "Movie Manager",
+    autoHideMenuBar: true,
     webPreferences: {
       preload: import_path2.default.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -374,12 +387,44 @@ function createWindow() {
       webSecurity: false
     }
   });
+  mainWindow.setMenu(null);
   if (isDev) {
     mainWindow.loadURL("http://localhost:3000");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(import_path2.default.join(__dirname, "../out/index.html"));
+    mainWindow.loadURL("app://localhost/");
   }
+}
+function registerAppProtocol() {
+  import_electron2.protocol.handle("app", (request) => {
+    try {
+      const reqUrl = new URL(request.url);
+      let pathname = decodeURIComponent(reqUrl.pathname);
+      const outDir = import_path2.default.join(__dirname, "../out");
+      if (pathname === "/" || pathname === "") {
+        pathname = "/index.html";
+      }
+      let filePath = import_path2.default.join(outDir, pathname);
+      if (!import_fs2.default.existsSync(filePath)) {
+        if (import_fs2.default.existsSync(filePath + ".html")) {
+          filePath = filePath + ".html";
+        } else if (import_fs2.default.existsSync(import_path2.default.join(filePath, "index.html"))) {
+          filePath = import_path2.default.join(filePath, "index.html");
+        } else {
+          filePath = import_path2.default.join(outDir, "index.html");
+        }
+      } else if (import_fs2.default.statSync(filePath).isDirectory()) {
+        const indexPath = import_path2.default.join(filePath, "index.html");
+        if (import_fs2.default.existsSync(indexPath)) {
+          filePath = indexPath;
+        }
+      }
+      return import_electron2.net.fetch(import_url.default.pathToFileURL(filePath).toString());
+    } catch (error) {
+      console.error("Failed to handle app protocol:", error);
+      return new Response("Not Found", { status: 404 });
+    }
+  });
 }
 function registerMediaProtocol() {
   import_electron2.protocol.registerFileProtocol("media", (request, callback) => {
@@ -401,6 +446,8 @@ function registerMediaProtocol() {
   });
 }
 import_electron2.app.whenReady().then(() => {
+  import_electron2.Menu.setApplicationMenu(null);
+  registerAppProtocol();
   registerMediaProtocol();
   initDatabase();
   createWindow();
