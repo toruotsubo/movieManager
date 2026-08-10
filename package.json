@@ -2,16 +2,27 @@
   "name": "movie-manager",
   "version": "1.0.0",
   "description": "Electron + Next.js Movie Management Desktop App",
-  "main": "dist/electron/main.js",
+  "main": "dist-electron/main.js",
   "private": true,
   "scripts": {
-    "dev:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist/electron --external electron --watch",
+    "dev:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist-electron --external electron --watch",
     "dev:next": "next dev -p 3000",
     "dev": "concurrently -k \"npm run dev:next\" \"npm run dev:electron\" \"wait-on http://localhost:3000 && electron .\"",
-    "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist/electron --external electron",
+    "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist-electron --external electron",
     "build:next": "next build",
     "build": "npm run build:next && npm run build:electron && electron-builder",
     "start": "electron ."
+  },
+  "build": {
+    "appId": "com.moviemanager.app",
+    "productName": "Movie Manager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist-electron/**/*",
+      "out/**/*"
+    ]
   },
   "dependencies": {
     "clsx": "^2.1.1",
