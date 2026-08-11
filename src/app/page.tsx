@@ -25,7 +25,7 @@ export default function KeyItemsPage() {
   const router = useRouter();
 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
+  const [ratingFilter, setRatingFilter] = useState<string | number>('all');
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -81,7 +81,13 @@ export default function KeyItemsPage() {
   ).sort((a, b) => a.localeCompare(b, 'ja'));
 
   const filteredGroups = keyGroups.filter((g) => {
-    if (ratingFilter !== 'all' && g.rating !== ratingFilter) return false;
+    if (ratingFilter === 'gte4') {
+      if (g.rating < 4) return false;
+    } else if (ratingFilter === 'gte3') {
+      if (g.rating < 3) return false;
+    } else if (ratingFilter !== 'all' && g.rating !== Number(ratingFilter)) {
+      return false;
+    }
     if (tagFilter !== 'all') {
       if (!g.tags) return false;
       const groupTags = g.tags.split(',').map((t) => t.trim());
@@ -146,9 +152,14 @@ export default function KeyItemsPage() {
             </span>
             <select
               value={ratingFilter}
-              onChange={(e) =>
-                setRatingFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
-              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'all' || val === 'gte4' || val === 'gte3') {
+                  setRatingFilter(val);
+                } else {
+                  setRatingFilter(Number(val));
+                }
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
             >
               <option value="all">すべて</option>
@@ -157,6 +168,9 @@ export default function KeyItemsPage() {
                   ★{r}
                 </option>
               ))}
+              <hr className="border-slate-800 my-1" />
+              <option value="gte4">★4以上</option>
+              <option value="gte3">★3以上</option>
             </select>
           </div>
 

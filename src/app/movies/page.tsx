@@ -44,7 +44,7 @@ function MoviesContent() {
 
   const [sortKey, setSortKey] = useState<SortKey>('title');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [ratingFilter, setRatingFilter] = useState<'all' | number>('all');
+  const [ratingFilter, setRatingFilter] = useState<string | number>('all');
   const [tagFilter, setTagFilter] = useState<string>('all');
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -132,8 +132,12 @@ function MoviesContent() {
         return true;
       });
     }
-    if (ratingFilter !== 'all') {
-      result = result.filter((movie) => movie.rating === ratingFilter);
+    if (ratingFilter === 'gte4') {
+      result = result.filter((movie) => movie.rating >= 4);
+    } else if (ratingFilter === 'gte3') {
+      result = result.filter((movie) => movie.rating >= 3);
+    } else if (ratingFilter !== 'all') {
+      result = result.filter((movie) => movie.rating === Number(ratingFilter));
     }
     if (tagFilter !== 'all') {
       result = result.filter((movie) => {
@@ -308,9 +312,14 @@ function MoviesContent() {
             </span>
             <select
               value={ratingFilter}
-              onChange={(e) =>
-                setRatingFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
-              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === 'all' || val === 'gte4' || val === 'gte3') {
+                  setRatingFilter(val);
+                } else {
+                  setRatingFilter(Number(val));
+                }
+              }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
             >
               <option value="all">すべて</option>
@@ -319,6 +328,9 @@ function MoviesContent() {
                   ★{r}
                 </option>
               ))}
+              <hr className="border-slate-800 my-1" />
+              <option value="gte4">★4以上</option>
+              <option value="gte3">★3以上</option>
             </select>
           </div>
 
