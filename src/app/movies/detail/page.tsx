@@ -1,9 +1,11 @@
 'use client';
 
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, useEffect } from 'react';
 import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl, formatReleaseDate, getSplitValues } from '@/lib/utils';
+import { formatDuration, formatResolution, formatFrameRate, formatFileSize } from '@/lib/metadataExtractor';
+import { ensureLegacyMovieMetadata } from '@/lib/legacyMetadataFetcher';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Movie, AppSettings } from '@/lib/types';
@@ -19,17 +21,30 @@ import {
   FileText,
   Tags,
   Layers,
+  Clock,
+  Monitor,
+  Gauge,
+  HardDrive,
 } from 'lucide-react';
 
 
 function MovieDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading } = useApp();
+  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, refreshData, loading } = useApp();
 
   const movieId = Number(searchParams.get('id'));
   const filterSignature = searchParams.get('filter');
   const movie = movies.find((m) => m.id === movieId);
+
+  // 【後日削除予定】登録済み動画への対応: メタデータ欠損がある場合に自動取得
+  useEffect(() => {
+    if (movie) {
+      ensureLegacyMovieMetadata(movie, () => {
+        refreshData();
+      });
+    }
+  }, [movie?.id]);
 
   const handleBack = () => {
     if (filterSignature) {
@@ -158,6 +173,61 @@ function MovieDetailContent() {
           <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <div className="p-3 rounded-full bg-blue-600/90 text-white shadow-lg backdrop-blur-sm transform group-hover:scale-110 transition-transform">
               <Play className="w-6 h-6 fill-current" />
+            </div>
+          </div>
+        </div>
+
+        {/* Technical Properties Bar (動画の長さ, 画面サイズ, フレームレート, ファイルサイズ) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 shadow-inner">
+          {/* Duration */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[11px] text-slate-400 block font-medium">動画の長さ</span>
+              <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
+                {formatDuration(movie.duration)}
+              </span>
+            </div>
+          </div>
+
+          {/* Resolution */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+              <Monitor className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[11px] text-slate-400 block font-medium">画面サイズ</span>
+              <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
+                {formatResolution(movie.width, movie.height)}
+              </span>
+            </div>
+          </div>
+
+          {/* Frame Rate */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0">
+              <Gauge className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[11px] text-slate-400 block font-medium">フレームレート</span>
+              <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
+                {formatFrameRate(movie.frame_rate)}
+              </span>
+            </div>
+          </div>
+
+          {/* File Size */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+              <HardDrive className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[11px] text-slate-400 block font-medium">ファイルサイズ</span>
+              <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
+                {formatFileSize(movie.file_size)}
+              </span>
             </div>
           </div>
         </div>

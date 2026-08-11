@@ -62,6 +62,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [width, setWidth] = useState<number | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  const [frameRate, setFrameRate] = useState<number | null>(null);
+  const [fileSize, setFileSize] = useState<number | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
 
@@ -92,7 +96,24 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       setIsPlaying(false);
       setVideoError(null);
       setCurrentTime(0);
-      setDuration(0);
+      setDuration(movie.duration || 0);
+      setWidth(movie.width || null);
+      setHeight(movie.height || null);
+      setFrameRate(movie.frame_rate || null);
+      setFileSize(movie.file_size || null);
+
+      // 自動メタデータ抽出 (新規および不足動画)
+      if (movie.file_path && window.api?.extractMetadata) {
+        window.api.extractMetadata(movie.file_path).then((meta) => {
+          if (meta) {
+            if (meta.file_size) setFileSize(meta.file_size);
+            if (meta.duration && !movie.duration) setDuration(meta.duration);
+            if (meta.width) setWidth(meta.width);
+            if (meta.height) setHeight(meta.height);
+            if (meta.frame_rate) setFrameRate(meta.frame_rate);
+          }
+        }).catch((err) => console.warn('Failed to extract metadata in modal:', err));
+      }
     }
   }, [isOpen, movie]);
 
@@ -226,6 +247,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       custom_field_3: custom3.trim() || null,
       summary_image_path: finalImagePath,
       duration: duration || movie.duration || null,
+      width: width || movie.width || null,
+      height: height || movie.height || null,
+      frame_rate: frameRate || movie.frame_rate || null,
+      file_size: fileSize || movie.file_size || null,
       is_grouped: isGrouped,
     });
     setIsCapturing(false);
@@ -340,6 +365,8 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         if (videoRef.current) {
                           const vidDuration = videoRef.current.duration;
                           setDuration(vidDuration);
+                          if (videoRef.current.videoWidth) setWidth(videoRef.current.videoWidth);
+                          if (videoRef.current.videoHeight) setHeight(videoRef.current.videoHeight);
                         }
                       }}
                       onError={(e) => {

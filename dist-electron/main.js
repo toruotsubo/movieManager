@@ -24,8 +24,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 
 // electron/main.ts
 var import_electron2 = require("electron");
-var import_path2 = __toESM(require("path"));
-var import_fs2 = __toESM(require("fs"));
+var import_path3 = __toESM(require("path"));
+var import_fs3 = __toESM(require("fs"));
 var import_url = __toESM(require("url"));
 
 // electron/db/index.ts
@@ -155,6 +155,10 @@ function addMovie(movie) {
     custom_field_2: movie.custom_field_2 || null,
     custom_field_3: movie.custom_field_3 || null,
     duration: movie.duration || null,
+    width: movie.width !== void 0 ? movie.width : null,
+    height: movie.height !== void 0 ? movie.height : null,
+    frame_rate: movie.frame_rate !== void 0 ? movie.frame_rate : null,
+    file_size: movie.file_size !== void 0 ? movie.file_size : null,
     is_grouped: movie.is_grouped !== void 0 ? movie.is_grouped : false,
     parent_movie_id: movie.parent_movie_id !== void 0 ? movie.parent_movie_id : null,
     created_at: (/* @__PURE__ */ new Date()).toISOString(),
@@ -345,6 +349,388 @@ function resetAllData() {
   return jsonDb.settings;
 }
 
+// electron/metadataParser.ts
+var import_fs2 = __toESM(require("fs"));
+var import_path2 = __toESM(require("path"));
+function extractVideoMetadata(filePath) {
+  try {
+    if (!import_fs2.default.existsSync(filePath)) {
+      return null;
+    }
+    const stat = import_fs2.default.statSync(filePath);
+    const fileSize = stat.size;
+    const ext = import_path2.default.extname(filePath).toLowerCase();
+    let meta = null;
+    if (ext === ".webm" || ext === ".mkv") {
+      meta = extractWebmMetadataNative(filePath, fileSize);
+    } else if (ext === ".avi") {
+      meta = extractAviMetadataNative(filePath);
+    }
+    if (!meta || !meta.frameRate && ext !== ".webm" && ext !== ".mkv" && ext !== ".avi") {
+      const mp4Meta = extractMp4MetadataNative(filePath, fileSize);
+      if (mp4Meta) {
+        meta = {
+          duration: mp4Meta.duration ?? meta?.duration,
+          width: mp4Meta.width ?? meta?.width,
+          height: mp4Meta.height ?? meta?.height,
+          frameRate: mp4Meta.frameRate ?? meta?.frameRate
+        };
+      }
+    }
+    return {
+      file_size: fileSize,
+      duration: meta?.duration ?? null,
+      width: meta?.width ?? null,
+      height: meta?.height ?? null,
+      frame_rate: meta?.frameRate ?? null
+    };
+  } catch (err) {
+    console.error("Failed to extract video metadata:", err);
+    return null;
+  }
+}
+function extractMp4MetadataNative(filePath, fileSize) {
+  let fd = null;
+  try {
+    let parseBoxes2 = function(buf, start, end) {
+      let curr = start;
+      while (curr + 8 <= end) {
+        const size32 = buf.readUInt32BE(curr);
+        const type = buf.toString("ascii", curr + 4, curr + 8);
+        let boxSize = size32 === 1 ? Number(buf.readBigUInt64BE(curr + 8)) : size32;
+        let headerLen = size32 === 1 ? 16 : 8;
+        if (size32 === 0 || curr + boxSize > end) {
+          boxSize = end - curr;
+        }
+        const contentStart = curr + headerLen;
+        const contentEnd = curr + boxSize;
+        if (type === "mvhd") {
+          const version = buf.readUInt8(contentStart);
+          if (version === 1) {
+            mvhdTimescale = buf.readUInt32BE(contentStart + 20);
+            mvhdDuration = Number(buf.readBigUInt64BE(contentStart + 24));
+          } else {
+            mvhdTimescale = buf.readUInt32BE(contentStart + 12);
+            mvhdDuration = buf.readUInt32BE(contentStart + 16);
+          }
+        } else if (type === "trak") {
+          parseTrak2(buf, contentStart, contentEnd);
+        } else if (type === "moov" || type === "mdia" || type === "minf" || type === "stbl") {
+          parseBoxes2(buf, contentStart, contentEnd);
+        }
+        curr += boxSize;
+        if (boxSize <= 0) break;
+      }
+    }, parseTrak2 = function(buf, start, end) {
+      let isVideoTrack = false;
+      let width = 0;
+      let height = 0;
+      let timescale = 0;
+      let duration = 0;
+      let sampleCount = 0;
+      function scanTrakNodes(curr, stop) {
+        while (curr + 8 <= stop) {
+          const size32 = buf.readUInt32BE(curr);
+          const type = buf.toString("ascii", curr + 4, curr + 8);
+          let boxSize = size32 === 1 ? Number(buf.readBigUInt64BE(curr + 8)) : size32;
+          let headerLen = size32 === 1 ? 16 : 8;
+          if (size32 === 0 || curr + boxSize > stop) boxSize = stop - curr;
+          const contentStart = curr + headerLen;
+          const contentEnd = curr + boxSize;
+          if (type === "hdlr") {
+            if (contentStart + 12 <= contentEnd) {
+              const handlerType = buf.toString("ascii", contentStart + 8, contentStart + 12);
+              if (handlerType === "vide") {
+                isVideoTrack = true;
+              }
+            }
+          } else if (type === "tkhd") {
+            const version = buf.readUInt8(contentStart);
+            const widthOffset = version === 1 ? 84 : 76;
+            if (contentStart + widthOffset + 8 <= contentEnd) {
+              width = buf.readUInt32BE(contentStart + widthOffset) >> 16;
+              height = buf.readUInt32BE(contentStart + widthOffset + 4) >> 16;
+            }
+          } else if (type === "mdhd") {
+            const version = buf.readUInt8(contentStart);
+            if (version === 1) {
+              timescale = buf.readUInt32BE(contentStart + 20);
+              duration = Number(buf.readBigUInt64BE(contentStart + 24));
+            } else {
+              timescale = buf.readUInt32BE(contentStart + 12);
+              duration = buf.readUInt32BE(contentStart + 16);
+            }
+          } else if (type === "stsz") {
+            if (contentStart + 8 <= contentEnd) {
+              const count = buf.readUInt32BE(contentStart + 4);
+              if (count > 0) sampleCount = count;
+            }
+          } else if (type === "stts") {
+            if (sampleCount === 0 && contentStart + 8 <= contentEnd) {
+              const entryCount = buf.readUInt32BE(contentStart + 4);
+              let total = 0;
+              let entryPos = contentStart + 8;
+              for (let i = 0; i < entryCount && entryPos + 8 <= contentEnd; i++) {
+                total += buf.readUInt32BE(entryPos);
+                entryPos += 8;
+              }
+              if (total > 0) sampleCount = total;
+            }
+          } else if (type === "mdia" || type === "minf" || type === "stbl") {
+            scanTrakNodes(contentStart, contentEnd);
+          }
+          curr += boxSize;
+          if (boxSize <= 0) break;
+        }
+      }
+      scanTrakNodes(start, end);
+      if (isVideoTrack || width > 0 && height > 0 && videoWidth === 0) {
+        if (width > 0) videoWidth = width;
+        if (height > 0) videoHeight = height;
+        if (timescale > 0) videoTimescale = timescale;
+        if (duration > 0) videoDuration = duration;
+        if (sampleCount > 0) videoSampleCount = sampleCount;
+      }
+    };
+    var parseBoxes = parseBoxes2, parseTrak = parseTrak2;
+    fd = import_fs2.default.openSync(filePath, "r");
+    let moovBuf = null;
+    let moovStartOffset = 0;
+    let pos = 0;
+    const headerBuf = Buffer.alloc(16);
+    while (pos + 8 <= fileSize) {
+      const bytesRead = import_fs2.default.readSync(fd, headerBuf, 0, 8, pos);
+      if (bytesRead < 8) break;
+      const size32 = headerBuf.readUInt32BE(0);
+      const type = headerBuf.toString("ascii", 4, 8);
+      let boxSize = BigInt(size32);
+      let headerLen = 8;
+      if (size32 === 1) {
+        const read64 = import_fs2.default.readSync(fd, headerBuf, 8, 8, pos + 8);
+        if (read64 < 8) break;
+        boxSize = headerBuf.readBigUInt64BE(8);
+        headerLen = 16;
+      } else if (size32 === 0) {
+        boxSize = BigInt(fileSize - pos);
+      }
+      if (type === "moov") {
+        const moovLen = Number(boxSize);
+        if (moovLen > 0 && moovLen <= 64 * 1024 * 1024) {
+          moovBuf = Buffer.alloc(moovLen);
+          import_fs2.default.readSync(fd, moovBuf, 0, moovLen, pos);
+          moovStartOffset = pos;
+        }
+        break;
+      }
+      if (boxSize <= BigInt(0)) break;
+      pos += Number(boxSize);
+    }
+    if (!moovBuf && fileSize > 8) {
+      const searchSize = Math.min(fileSize, 16 * 1024 * 1024);
+      const tailBuf = Buffer.alloc(searchSize);
+      const startReadPos = fileSize - searchSize;
+      import_fs2.default.readSync(fd, tailBuf, 0, searchSize, startReadPos);
+      for (let i = tailBuf.length - 4; i >= 0; i--) {
+        if (tailBuf[i] === 109 && tailBuf[i + 1] === 111 && tailBuf[i + 2] === 111 && tailBuf[i + 3] === 118) {
+          if (i >= 4) {
+            const moovSize32 = tailBuf.readUInt32BE(i - 4);
+            const absoluteMoovPos = startReadPos + (i - 4);
+            if (moovSize32 > 0 && absoluteMoovPos + moovSize32 <= fileSize) {
+              moovBuf = Buffer.alloc(moovSize32);
+              import_fs2.default.readSync(fd, moovBuf, 0, moovSize32, absoluteMoovPos);
+              moovStartOffset = absoluteMoovPos;
+              break;
+            }
+          }
+        }
+      }
+    }
+    import_fs2.default.closeSync(fd);
+    fd = null;
+    if (!moovBuf) return null;
+    let mvhdTimescale = 0;
+    let mvhdDuration = 0;
+    let videoWidth = 0;
+    let videoHeight = 0;
+    let videoTimescale = 0;
+    let videoDuration = 0;
+    let videoSampleCount = 0;
+    parseBoxes2(moovBuf, 0, moovBuf.length);
+    let finalDuration;
+    if (videoTimescale > 0 && videoDuration > 0) {
+      finalDuration = videoDuration / videoTimescale;
+    } else if (mvhdTimescale > 0 && mvhdDuration > 0) {
+      finalDuration = mvhdDuration / mvhdTimescale;
+    }
+    let frameRate;
+    if (finalDuration && finalDuration > 0 && videoSampleCount > 0) {
+      frameRate = Math.round(videoSampleCount / finalDuration * 100) / 100;
+    }
+    return {
+      duration: finalDuration ? Math.round(finalDuration * 100) / 100 : void 0,
+      width: videoWidth || void 0,
+      height: videoHeight || void 0,
+      frameRate
+    };
+  } catch (err) {
+    if (fd !== null) {
+      try {
+        import_fs2.default.closeSync(fd);
+      } catch (e) {
+      }
+    }
+    return null;
+  }
+}
+function extractWebmMetadataNative(filePath, fileSize) {
+  let fd = null;
+  try {
+    let readVint2 = function(p) {
+      if (p >= buf.length) return null;
+      const b0 = buf[p];
+      let mask = 128;
+      let length = 1;
+      while (length <= 8 && (b0 & mask) === 0) {
+        mask >>= 1;
+        length++;
+      }
+      if (length > 8) return null;
+      let val = b0 & mask - 1;
+      for (let i = 1; i < length; i++) {
+        if (p + i >= buf.length) return null;
+        val = val * 256 + buf[p + i];
+      }
+      return { value: val, length };
+    }, readElementHeader2 = function(p) {
+      if (p >= buf.length) return null;
+      let idLen = 1;
+      const b0 = buf[p];
+      if ((b0 & 128) !== 0) idLen = 1;
+      else if ((b0 & 64) !== 0) idLen = 2;
+      else if ((b0 & 32) !== 0) idLen = 3;
+      else if ((b0 & 16) !== 0) idLen = 4;
+      else return null;
+      if (p + idLen > buf.length) return null;
+      let id = 0;
+      for (let i = 0; i < idLen; i++) {
+        id = id * 256 + buf[p + i];
+      }
+      const vint = readVint2(p + idLen);
+      if (!vint) return null;
+      return {
+        id,
+        idLen,
+        dataLen: vint.value,
+        headerLen: idLen + vint.length
+      };
+    }, parseEbml2 = function(start, end) {
+      let p = start;
+      while (p < end) {
+        const header = readElementHeader2(p);
+        if (!header) break;
+        const elemEnd = p + header.headerLen + header.dataLen;
+        if (header.id === 408125543 || header.id === 374648427 || header.id === 174 || header.id === 224) {
+          parseEbml2(p + header.headerLen, Math.min(elemEnd, end));
+        } else if (header.id === 2352003) {
+          const dataStart = p + header.headerLen;
+          if (header.dataLen === 4 && dataStart + 4 <= buf.length) {
+            defaultDurationNs = buf.readUInt32BE(dataStart);
+          } else if (header.dataLen === 8 && dataStart + 8 <= buf.length) {
+            defaultDurationNs = Number(buf.readBigUInt64BE(dataStart));
+          }
+        } else if (header.id === 176) {
+          const dataStart = p + header.headerLen;
+          if (header.dataLen === 2 && dataStart + 2 <= buf.length) width = buf.readUInt16BE(dataStart);
+          else if (header.dataLen === 4 && dataStart + 4 <= buf.length) width = buf.readUInt32BE(dataStart);
+        } else if (header.id === 186) {
+          const dataStart = p + header.headerLen;
+          if (header.dataLen === 2 && dataStart + 2 <= buf.length) height = buf.readUInt16BE(dataStart);
+          else if (header.dataLen === 4 && dataStart + 4 <= buf.length) height = buf.readUInt32BE(dataStart);
+        }
+        p = elemEnd;
+      }
+    };
+    var readVint = readVint2, readElementHeader = readElementHeader2, parseEbml = parseEbml2;
+    fd = import_fs2.default.openSync(filePath, "r");
+    const readSize = Math.min(fileSize, 4 * 1024 * 1024);
+    const buf = Buffer.alloc(readSize);
+    import_fs2.default.readSync(fd, buf, 0, readSize, 0);
+    import_fs2.default.closeSync(fd);
+    fd = null;
+    let defaultDurationNs;
+    let width;
+    let height;
+    parseEbml2(0, buf.length);
+    let frameRate;
+    if (defaultDurationNs && defaultDurationNs > 0) {
+      frameRate = Math.round(1e9 / defaultDurationNs * 100) / 100;
+    }
+    return {
+      width,
+      height,
+      frameRate
+    };
+  } catch (err) {
+    if (fd !== null) {
+      try {
+        import_fs2.default.closeSync(fd);
+      } catch (e) {
+      }
+    }
+    return null;
+  }
+}
+function extractAviMetadataNative(filePath) {
+  let fd = null;
+  try {
+    fd = import_fs2.default.openSync(filePath, "r");
+    const buf = Buffer.alloc(64 * 1024);
+    const bytesRead = import_fs2.default.readSync(fd, buf, 0, buf.length, 0);
+    import_fs2.default.closeSync(fd);
+    fd = null;
+    if (bytesRead < 56) return null;
+    const riffType = buf.toString("ascii", 0, 4);
+    const aviType = buf.toString("ascii", 8, 12);
+    if (riffType !== "RIFF" || aviType !== "AVI ") return null;
+    let microSecPerFrame = 0;
+    let totalFrames = 0;
+    let width = 0;
+    let height = 0;
+    for (let i = 12; i < bytesRead - 40; i++) {
+      if (buf.toString("ascii", i, i + 4) === "avih") {
+        const content = i + 8;
+        microSecPerFrame = buf.readUInt32LE(content);
+        totalFrames = buf.readUInt32LE(content + 16);
+        width = buf.readUInt32LE(content + 32);
+        height = buf.readUInt32LE(content + 36);
+        break;
+      }
+    }
+    let frameRate;
+    if (microSecPerFrame > 0) {
+      frameRate = Math.round(1e6 / microSecPerFrame * 100) / 100;
+    }
+    let duration;
+    if (frameRate && totalFrames > 0) {
+      duration = Math.round(totalFrames / frameRate * 100) / 100;
+    }
+    return {
+      duration,
+      width: width || void 0,
+      height: height || void 0,
+      frameRate
+    };
+  } catch (err) {
+    if (fd !== null) {
+      try {
+        import_fs2.default.closeSync(fd);
+      } catch (e) {
+      }
+    }
+    return null;
+  }
+}
+
 // electron/main.ts
 import_electron2.protocol.registerSchemesAsPrivileged([
   {
@@ -381,7 +767,7 @@ function createWindow() {
     title: "Movie Manager",
     autoHideMenuBar: true,
     webPreferences: {
-      preload: import_path2.default.join(__dirname, "preload.js"),
+      preload: import_path3.default.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: false
@@ -400,22 +786,22 @@ function registerAppProtocol() {
     try {
       const reqUrl = new URL(request.url);
       let pathname = decodeURIComponent(reqUrl.pathname);
-      const outDir = import_path2.default.join(__dirname, "../out");
+      const outDir = import_path3.default.join(__dirname, "../out");
       if (pathname === "/" || pathname === "") {
         pathname = "/index.html";
       }
-      let filePath = import_path2.default.join(outDir, pathname);
-      if (!import_fs2.default.existsSync(filePath)) {
-        if (import_fs2.default.existsSync(filePath + ".html")) {
+      let filePath = import_path3.default.join(outDir, pathname);
+      if (!import_fs3.default.existsSync(filePath)) {
+        if (import_fs3.default.existsSync(filePath + ".html")) {
           filePath = filePath + ".html";
-        } else if (import_fs2.default.existsSync(import_path2.default.join(filePath, "index.html"))) {
-          filePath = import_path2.default.join(filePath, "index.html");
+        } else if (import_fs3.default.existsSync(import_path3.default.join(filePath, "index.html"))) {
+          filePath = import_path3.default.join(filePath, "index.html");
         } else {
-          filePath = import_path2.default.join(outDir, "index.html");
+          filePath = import_path3.default.join(outDir, "index.html");
         }
-      } else if (import_fs2.default.statSync(filePath).isDirectory()) {
-        const indexPath = import_path2.default.join(filePath, "index.html");
-        if (import_fs2.default.existsSync(indexPath)) {
+      } else if (import_fs3.default.statSync(filePath).isDirectory()) {
+        const indexPath = import_path3.default.join(filePath, "index.html");
+        if (import_fs3.default.existsSync(indexPath)) {
           filePath = indexPath;
         }
       }
@@ -437,7 +823,7 @@ function registerMediaProtocol() {
           decodedPath = decodedPath.slice(1);
         }
       }
-      const normalizedPath = import_path2.default.normalize(decodedPath);
+      const normalizedPath = import_path3.default.normalize(decodedPath);
       callback({ path: normalizedPath });
     } catch (error) {
       console.error("Failed to handle media file protocol:", error);
@@ -470,6 +856,9 @@ import_electron2.ipcMain.handle(
   "movies:updateRating",
   async (_, { id, rating }) => updateMovieRating(id, rating)
 );
+import_electron2.ipcMain.handle("movies:extractMetadata", async (_, filePath) => {
+  return extractVideoMetadata(filePath);
+});
 import_electron2.ipcMain.handle("keyItems:getAll", async () => getKeyItemGroups());
 import_electron2.ipcMain.handle(
   "keyItems:updateRating",
@@ -482,7 +871,7 @@ import_electron2.ipcMain.handle(
 import_electron2.ipcMain.handle("app:resetData", async () => resetAllData());
 import_electron2.ipcMain.handle("app:openMoviePlayer", async (_, filePath) => {
   try {
-    if (!import_fs2.default.existsSync(filePath)) {
+    if (!import_fs3.default.existsSync(filePath)) {
       return { success: false, error: "\u6307\u5B9A\u3055\u308C\u305F\u52D5\u753B\u30D5\u30A1\u30A4\u30EB\u304C\u5B58\u5728\u3057\u307E\u305B\u3093\u3002" };
     }
     const errorMsg = await import_electron2.shell.openPath(filePath);
@@ -497,15 +886,15 @@ import_electron2.ipcMain.handle("app:openMoviePlayer", async (_, filePath) => {
 import_electron2.ipcMain.handle("app:saveSummaryImage", async (_, base64Data) => {
   try {
     const userDataPath = import_electron2.app.getPath("userData");
-    const thumbDir = import_path2.default.join(userDataPath, "thumbnails");
-    if (!import_fs2.default.existsSync(thumbDir)) {
-      import_fs2.default.mkdirSync(thumbDir, { recursive: true });
+    const thumbDir = import_path3.default.join(userDataPath, "thumbnails");
+    if (!import_fs3.default.existsSync(thumbDir)) {
+      import_fs3.default.mkdirSync(thumbDir, { recursive: true });
     }
     const filename = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
-    const fullPath = import_path2.default.join(thumbDir, filename);
+    const fullPath = import_path3.default.join(thumbDir, filename);
     const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(cleanBase64, "base64");
-    import_fs2.default.writeFileSync(fullPath, buffer);
+    import_fs3.default.writeFileSync(fullPath, buffer);
     return fullPath;
   } catch (err) {
     console.error("Failed to save summary image:", err);

@@ -172,6 +172,13 @@ ipcMain.handle('movies:updateRating', async (_, { id, rating }: { id: number; ra
   updateMovieRating(id, rating)
 );
 
+import { extractVideoMetadata } from './metadataParser';
+
+// Extract movie metadata IPC
+ipcMain.handle('movies:extractMetadata', async (_, filePath: string) => {
+  return extractVideoMetadata(filePath);
+});
+
 ipcMain.handle('keyItems:getAll', async () => getKeyItemGroups());
 ipcMain.handle('keyItems:updateRating', async (_, { key_signature, rating }: { key_signature: string; rating: number }) =>
   updateKeyItemRating(key_signature, rating)

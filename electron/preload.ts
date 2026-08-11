@@ -31,6 +31,16 @@ export const api = {
   openMoviePlayer: (filePath: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('app:openMoviePlayer', filePath),
 
+  extractMetadata: (
+    filePath: string
+  ): Promise<{
+    file_size: number | null;
+    duration: number | null;
+    width: number | null;
+    height: number | null;
+    frame_rate: number | null;
+  } | null> => ipcRenderer.invoke('movies:extractMetadata', filePath),
+
   saveSummaryImage: (base64Data: string): Promise<string> => ipcRenderer.invoke('app:saveSummaryImage', base64Data),
   resetData: (): Promise<AppSettings> => ipcRenderer.invoke('app:resetData'),
 };

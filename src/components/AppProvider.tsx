@@ -175,11 +175,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (existingMovie) {
       openEditMovieModal(existingMovie);
     } else {
+      let meta = null;
+      if (window.api?.extractMetadata) {
+        meta = await window.api.extractMetadata(filePath);
+      }
+
       openEditMovieModal({
         file_path: filePath,
         file_name: fileName,
         title: fileName.replace(/\.[^/.]+$/, ''),
         rating: 3,
+        duration: meta?.duration || null,
+        width: meta?.width || null,
+        height: meta?.height || null,
+        frame_rate: meta?.frame_rate || null,
+        file_size: meta?.file_size || null,
       });
     }
   };

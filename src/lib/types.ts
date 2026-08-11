@@ -25,6 +25,10 @@ export interface Movie {
   custom_field_2: string | null;
   custom_field_3: string | null;
   duration: number | null;
+  width?: number | null;
+  height?: number | null;
+  frame_rate?: number | null;
+  file_size?: number | null;
   is_grouped?: boolean;
   parent_movie_id?: number | null;
   created_at?: string;
@@ -64,6 +68,10 @@ export interface CreateMovieInput {
   custom_field_2?: string | null;
   custom_field_3?: string | null;
   duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+  frame_rate?: number | null;
+  file_size?: number | null;
   is_grouped?: boolean;
   parent_movie_id?: number | null;
 }
