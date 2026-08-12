@@ -124,6 +124,7 @@ export function addMovie(movie: CreateMovieInput): Movie {
     custom_field_2: movie.custom_field_2 || null,
     custom_field_3: movie.custom_field_3 || null,
     duration: movie.duration || null,
+    captured_time: movie.captured_time !== undefined ? movie.captured_time : null,
     width: movie.width !== undefined ? movie.width : null,
     height: movie.height !== undefined ? movie.height : null,
     frame_rate: movie.frame_rate !== undefined ? movie.frame_rate : null,
@@ -261,10 +262,14 @@ export function updateKeyItemRating(key_signature: string, rating: number): void
 export function updateKeyItemDetails(input: UpdateKeyItemInput): void {
   if (!jsonDb) initDatabase();
   if (!jsonDb!.keyTags) jsonDb!.keyTags = {};
+  if (!jsonDb!.keyRatings) jsonDb!.keyRatings = {};
 
-  const { key_signature, cast_kana, tags } = input;
+  const { key_signature, cast_kana, tags, rating } = input;
   if (tags !== undefined) {
     jsonDb!.keyTags[key_signature] = tags || '';
+  }
+  if (rating !== undefined) {
+    jsonDb!.keyRatings[key_signature] = rating;
   }
 
   if (cast_kana !== undefined) {

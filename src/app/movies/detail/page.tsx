@@ -180,10 +180,8 @@ function MovieDetailContent() {
         {/* Technical Properties Bar (動画の長さ, 画面サイズ, フレームレート, ファイルサイズ) */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-900/80 border border-slate-800/80 shadow-inner">
           {/* Duration */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
-              <Clock className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <Clock className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
               <span className="text-[11px] text-slate-400 block font-medium">動画の長さ</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
@@ -193,10 +191,8 @@ function MovieDetailContent() {
           </div>
 
           {/* Resolution */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-              <Monitor className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <Monitor className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
               <span className="text-[11px] text-slate-400 block font-medium">画面サイズ</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
@@ -206,10 +202,8 @@ function MovieDetailContent() {
           </div>
 
           {/* Frame Rate */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0">
-              <Gauge className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <Gauge className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
               <span className="text-[11px] text-slate-400 block font-medium">フレームレート</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
@@ -219,10 +213,8 @@ function MovieDetailContent() {
           </div>
 
           {/* File Size */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-              <HardDrive className="w-4 h-4" />
-            </div>
+          <div className="flex items-center gap-2.5">
+            <HardDrive className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
               <span className="text-[11px] text-slate-400 block font-medium">ファイルサイズ</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">

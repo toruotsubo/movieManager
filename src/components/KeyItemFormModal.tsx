@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
 import { useApp } from '@/components/AppProvider';
-import { X, Save, Tag, User } from 'lucide-react';
+import { RatingStars } from '@/components/RatingStars';
+import { X, Save } from 'lucide-react';
 
 interface KeyItemFormModalProps {
   isOpen: boolean;
   group: KeyItemGroup | null;
   initialCastKana?: string;
-  onSave: (data: { key_signature: string; cast_kana: string; tags: string }) => Promise<void>;
+  onSave: (data: { key_signature: string; cast_kana: string; tags: string; rating?: number }) => Promise<void>;
   onClose: () => void;
 }
 
@@ -34,6 +35,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
   const { settings } = useApp();
   const [castKana, setCastKana] = useState('');
   const [tags, setTags] = useState('');
+  const [rating, setRating] = useState<number>(3);
   const [saving, setSaving] = useState(false);
   const loadedGroupKeyRef = React.useRef<string | null>(null);
 
@@ -47,6 +49,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
       loadedGroupKeyRef.current = group.key_signature;
       setCastKana(initialCastKana || '');
       setTags(group.tags || '');
+      setRating(group.rating || 3);
     }
   }, [isOpen, group, initialCastKana]);
 
@@ -64,6 +67,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
         key_signature: group.key_signature,
         cast_kana: castKana.trim(),
         tags: tags.trim(),
+        rating,
       });
       onClose();
     } catch (err) {
@@ -104,11 +108,24 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
             </div>
           </div>
 
+          {/* Rating Field (Key Item Specific) */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-300 block">
+              評価 （{keyLabel}専用）
+            </label>
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+              <RatingStars
+                rating={rating}
+                onChange={(newRating) => setRating(newRating)}
+                size="lg"
+              />
+            </div>
+          </div>
+
           {/* Cast Kana Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <User className="w-4 h-4 text-blue-400" />
-              <span>主演（ふりがな）</span>
+            <label className="text-xs font-semibold text-slate-300 block">
+              主演（ふりがな）
             </label>
             <input
               type="text"
@@ -124,9 +141,8 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
 
           {/* Tags Field (Key Item Specific) */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-slate-400" />
-              <span>タグ （{keyLabel}専用）</span>
+            <label className="text-xs font-semibold text-slate-300 block">
+              タグ （{keyLabel}専用）
             </label>
             <input
               type="text"

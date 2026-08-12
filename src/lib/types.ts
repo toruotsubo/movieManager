@@ -25,6 +25,7 @@ export interface Movie {
   custom_field_2: string | null;
   custom_field_3: string | null;
   duration: number | null;
+  captured_time?: number | null;
   width?: number | null;
   height?: number | null;
   frame_rate?: number | null;
@@ -49,6 +50,7 @@ export interface UpdateKeyItemInput {
   key_signature: string;
   cast_kana?: string | null;
   tags?: string | null;
+  rating?: number;
 }
 
 export interface CreateMovieInput {
@@ -68,6 +70,7 @@ export interface CreateMovieInput {
   custom_field_2?: string | null;
   custom_field_3?: string | null;
   duration?: number | null;
+  captured_time?: number | null;
   width?: number | null;
   height?: number | null;
   frame_rate?: number | null;

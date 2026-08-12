@@ -58,6 +58,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
 
   // Video / Summary Image State
   const [summaryImagePath, setSummaryImagePath] = useState<string | null>(null);
+  const [capturedTime, setCapturedTime] = useState<number | null>(null);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -92,6 +93,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       setCustom3(movie.custom_field_3 || '');
       setIsGrouped(Boolean(movie.is_grouped));
       setSummaryImagePath(movie.summary_image_path || null);
+      setCapturedTime(movie.captured_time !== undefined ? movie.captured_time : null);
       setIsPlayingVideo(false);
       setIsPlaying(false);
       setVideoError(null);
@@ -220,8 +222,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const handleSave = async () => {
     setIsCapturing(true);
     let finalImagePath = summaryImagePath;
+    let finalCapturedTime = capturedTime;
 
     if (isPlayingVideo && videoRef.current) {
+      finalCapturedTime = videoRef.current.currentTime;
       const captured = await captureFrame();
       if (captured) finalImagePath = captured;
     }
@@ -246,6 +250,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       custom_field_2: custom2.trim() || null,
       custom_field_3: custom3.trim() || null,
       summary_image_path: finalImagePath,
+      captured_time: finalCapturedTime !== undefined ? finalCapturedTime : null,
       duration: duration || movie.duration || null,
       width: width || movie.width || null,
       height: height || movie.height || null,
@@ -367,6 +372,19 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                           setDuration(vidDuration);
                           if (videoRef.current.videoWidth) setWidth(videoRef.current.videoWidth);
                           if (videoRef.current.videoHeight) setHeight(videoRef.current.videoHeight);
+
+                          // 初回/未記録時は50%位置、記録あり時は記録位置にシーク
+                          let targetTime = 0;
+                          if (capturedTime !== null && capturedTime !== undefined && !isNaN(capturedTime) && capturedTime >= 0) {
+                            targetTime = Math.min(vidDuration, Math.max(0, capturedTime));
+                          } else if (vidDuration && !isNaN(vidDuration) && vidDuration > 0) {
+                            targetTime = vidDuration * 0.5;
+                          }
+
+                          if (targetTime > 0) {
+                            videoRef.current.currentTime = targetTime;
+                            setCurrentTime(targetTime);
+                          }
                         }
                       }}
                       onError={(e) => {

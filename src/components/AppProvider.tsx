@@ -207,7 +207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsKeyItemFormOpen(true);
   };
 
-  const handleSaveKeyItemDetails = async (data: { key_signature: string; cast_kana: string; tags: string }) => {
+  const handleSaveKeyItemDetails = async (data: { key_signature: string; cast_kana: string; tags: string; rating?: number }) => {
     if (window.api) {
       await window.api.updateKeyItemDetails(data);
       await refreshData();

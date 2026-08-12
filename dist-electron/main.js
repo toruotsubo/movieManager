@@ -155,6 +155,7 @@ function addMovie(movie) {
     custom_field_2: movie.custom_field_2 || null,
     custom_field_3: movie.custom_field_3 || null,
     duration: movie.duration || null,
+    captured_time: movie.captured_time !== void 0 ? movie.captured_time : null,
     width: movie.width !== void 0 ? movie.width : null,
     height: movie.height !== void 0 ? movie.height : null,
     frame_rate: movie.frame_rate !== void 0 ? movie.frame_rate : null,
@@ -266,9 +267,13 @@ function updateKeyItemRating(key_signature, rating) {
 function updateKeyItemDetails(input) {
   if (!jsonDb) initDatabase();
   if (!jsonDb.keyTags) jsonDb.keyTags = {};
-  const { key_signature, cast_kana, tags } = input;
+  if (!jsonDb.keyRatings) jsonDb.keyRatings = {};
+  const { key_signature, cast_kana, tags, rating } = input;
   if (tags !== void 0) {
     jsonDb.keyTags[key_signature] = tags || "";
+  }
+  if (rating !== void 0) {
+    jsonDb.keyRatings[key_signature] = rating;
   }
   if (cast_kana !== void 0) {
     const settings = getAppSettings();

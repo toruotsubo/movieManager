@@ -99,12 +99,15 @@ function MoviesContent() {
     }
   }, [filterSignature]);
 
-  const isFromKeyItemsPage = Boolean(filterValues);
-
   const pageTitle = useMemo(() => {
     if (filterValues && Object.keys(filterValues).length > 0) {
-      const keyValStr = Object.values(filterValues).join(' / ');
-      return `${keyValStr}動画一覧`;
+      const formattedVals = Object.entries(filterValues).map(([key, val]) => {
+        if (key === 'release_year') {
+          return String(val).endsWith('年') ? String(val) : `${val}年`;
+        }
+        return String(val);
+      });
+      return `${formattedVals.join(' / ')}動画一覧`;
     }
     return '動画一覧';
   }, [filterValues]);
@@ -426,8 +429,8 @@ function MoviesContent() {
                   </h3>
 
                   <div className="space-y-1.5 text-xs text-slate-400">
-                    {/* Custom key field value if not from key items page */}
-                    {!isFromKeyItemsPage && keyFieldId.startsWith('custom_field_') && (
+                    {/* Custom key field value if not filtered by this custom field */}
+                    {keyFieldId.startsWith('custom_field_') && (!filterValues || filterValues[keyFieldId] === undefined) && (
                       <div className="flex items-center gap-2">
                         <FileText className="w-3.5 h-3.5 text-blue-400" />
                         <span className="text-slate-300 font-medium">
@@ -450,8 +453,8 @@ function MoviesContent() {
                       </div>
                     )}
 
-                    {/* Category (genre) - excluded if transitioned from Key Items page */}
-                    {!(isFromKeyItemsPage && keyFields.includes('genre')) && (
+                    {/* Category (genre) - excluded if filtered by genre */}
+                    {(!filterValues || filterValues['genre'] === undefined) && (
                       <div className="flex items-center gap-2">
                         <Shapes className="w-3.5 h-3.5 text-slate-500" />
                         {movie.genre ? (
@@ -464,11 +467,7 @@ function MoviesContent() {
                                     e.stopPropagation();
                                     handleKeyItemClick('genre', gVal);
                                   }}
-                                  className={clsx(
-                                    keyFields.includes('genre')
-                                      ? 'text-blue-400 hover:underline font-semibold cursor-pointer'
-                                      : 'text-slate-300 hover:text-blue-300 hover:underline cursor-pointer'
-                                  )}
+                                  className="text-blue-400 hover:underline font-semibold cursor-pointer"
                                   title={`カテゴリ「${gVal}」で絞り込み`}
                                 >
                                   {gVal}
@@ -482,8 +481,8 @@ function MoviesContent() {
                       </div>
                     )}
 
-                    {/* Cast - excluded if transitioned from Key Items page */}
-                    {!(isFromKeyItemsPage && keyFields.includes('cast')) && (
+                    {/* Cast - excluded if filtered by cast */}
+                    {(!filterValues || filterValues['cast'] === undefined) && (
                       <div className="flex items-center gap-2">
                         <User className="w-3.5 h-3.5 text-slate-500" />
                         {movie.cast ? (
@@ -496,11 +495,7 @@ function MoviesContent() {
                                     e.stopPropagation();
                                     handleKeyItemClick('cast', cVal);
                                   }}
-                                  className={clsx(
-                                    keyFields.includes('cast')
-                                      ? 'text-blue-400 hover:underline font-semibold cursor-pointer'
-                                      : 'text-slate-300 hover:text-blue-300 hover:underline cursor-pointer'
-                                  )}
+                                  className="text-blue-400 hover:underline font-semibold cursor-pointer"
                                   title={`主演「${cVal}」で絞り込み`}
                                 >
                                   {cVal}
@@ -514,8 +509,8 @@ function MoviesContent() {
                       </div>
                     )}
 
-                    {/* Release Date - excluded if transitioned from Key Items page */}
-                    {!(isFromKeyItemsPage && (keyFields.includes('release_year') || keyFields.includes('release_date'))) && (
+                    {/* Release Date - excluded if filtered by release_year or release_date */}
+                    {(!filterValues || (filterValues['release_year'] === undefined && filterValues['release_date'] === undefined)) && (
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-slate-500" />
                         {movie.release_year ? (
@@ -524,11 +519,7 @@ function MoviesContent() {
                               e.stopPropagation();
                               handleKeyItemClick('release_year', movie.release_year!);
                             }}
-                            className={clsx(
-                              keyFields.includes('release_year') || keyFields.includes('release_date')
-                                ? 'text-blue-400 hover:underline font-semibold cursor-pointer'
-                                : 'text-slate-300 hover:text-blue-300 hover:underline cursor-pointer'
-                            )}
+                            className="text-blue-400 hover:underline font-semibold cursor-pointer"
                             title={`公開年「${movie.release_year}年」で絞り込み`}
                           >
                             {formatReleaseDate(movie.release_year, movie.release_date)}
