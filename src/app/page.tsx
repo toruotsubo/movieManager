@@ -5,7 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { ArrowUpDown, Film, LayoutGrid, Filter, Edit, Tag } from 'lucide-react';
+import { ArrowUpDown, Film, LayoutGrid, Star, Edit, Tag, FileText, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
 
@@ -27,6 +27,7 @@ export default function KeyItemsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [ratingFilter, setRatingFilter] = useState<string | number>('all');
   const [tagFilter, setTagFilter] = useState<string>('all');
+  const [isTextListModalOpen, setIsTextListModalOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Restore filter/sort state from sessionStorage on mount
@@ -148,7 +149,7 @@ export default function KeyItemsPage() {
           {/* Rating Filter Controls */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> 評価:
+              <Star className="w-3.5 h-3.5 text-slate-400" /> 評価:
             </span>
             <select
               value={ratingFilter}
@@ -183,10 +184,18 @@ export default function KeyItemsPage() {
               onClick={toggleSort}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 border-blue-500 text-blue-400 transition-colors"
             >
-              <span>{keyLabel} ({sortOrder === 'asc' ? '昇順' : '降順'})</span>
+              <span>{keyLabel}</span>
               <ArrowUpDown className="w-3.5 h-3.5" />
             </button>
           </div>
+
+          {/* Text List Button */}
+          <button
+            onClick={() => setIsTextListModalOpen(true)}
+            className="flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border-blue-500/40 transition-colors cursor-pointer"
+          >
+            <span>テキスト一覧</span>
+          </button>
         </div>
       </div>
 
@@ -305,6 +314,67 @@ export default function KeyItemsPage() {
           );
         })}
       </div>
+
+      {/* Text List Modal */}
+      {isTextListModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+              <div className="flex items-center gap-2.5">
+                <FileText className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-bold text-white">{keyLabel} テキスト一覧</h2>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">
+                  {sortedGroups.length} 件
+                </span>
+              </div>
+              <button
+                onClick={() => setIsTextListModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body / Tag Cloud Items */}
+            <div className="p-5 overflow-y-auto flex-1 max-h-[60vh]">
+              {sortedGroups.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-sm">
+                  該当するキー項目がありません
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2.5">
+                  {sortedGroups.map((group) => {
+                    const keyText = Object.values(group.key_values).join(' / ');
+                    return (
+                      <button
+                        key={group.key_signature}
+                        onClick={() => {
+                          setIsTextListModalOpen(false);
+                          handleRowClick(group);
+                        }}
+                        className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700/70 hover:border-blue-500 transition-all cursor-pointer shadow-sm hover:shadow-blue-500/20 active:scale-95"
+                      >
+                        {keyText}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 border-t border-slate-800 bg-slate-900/90 flex justify-end">
+              <button
+                onClick={() => setIsTextListModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

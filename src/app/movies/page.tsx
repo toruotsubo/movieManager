@@ -10,7 +10,7 @@ import {
   List,
   Play,
   ArrowUpDown,
-  Filter,
+  Star,
   Film,
   Calendar,
   User,
@@ -311,7 +311,7 @@ function MoviesContent() {
           {/* Rating Filter Controls */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> 評価:
+              <Star className="w-3.5 h-3.5 text-slate-400" /> 評価:
             </span>
             <select
               value={ratingFilter}

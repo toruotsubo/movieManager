@@ -7,7 +7,6 @@ import { formatMediaUrl, formatReleaseDate, getSplitValues } from '@/lib/utils';
 import { formatDuration, formatResolution, formatFrameRate, formatFileSize } from '@/lib/metadataExtractor';
 import { ensureLegacyMovieMetadata } from '@/lib/legacyMetadataFetcher';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Movie, AppSettings } from '@/lib/types';
 import {
   ArrowLeft,
@@ -350,13 +349,12 @@ function MovieDetailContent() {
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {getSplitValues(movie.tags).map((tag, idx) => (
-                  <Link
+                  <span
                     key={idx}
-                    href={`/movies`}
-                    className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border border-blue-500/30 text-xs font-medium transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-blue-600/20 text-blue-300 border border-blue-500/30 text-xs font-medium"
                   >
-                    #{tag}
-                  </Link>
+                    {tag}
+                  </span>
                 ))}
               </div>
             </div>
