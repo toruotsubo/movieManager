@@ -9,19 +9,24 @@ import { ArrowUpDown, Film, Star, Edit, Tag, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
 
-const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string => {
+const getKeyFieldLabel = (keyId: string, settings: AppSettings | null, tFunc: (k: any) => string): string => {
+  if (keyId === 'title') return tFunc('field_title');
+  if (keyId === 'genre') return tFunc('field_genre');
+  if (keyId === 'cast') return tFunc('field_cast');
+  if (keyId === 'release_year') return tFunc('field_release_year');
+  if (keyId === 'release_date') return tFunc('field_release_date');
+  if (keyId === 'rating') return tFunc('field_rating');
+
+  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || tFunc('field_custom_1_default');
+  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || tFunc('field_custom_2_default');
+  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || tFunc('field_custom_3_default');
+
   const base = ALL_BASE_FIELDS.find((f) => f.id === keyId);
-  if (base) return base.label;
-
-  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || 'ユーザー定義項目1';
-  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || 'ユーザー定義項目2';
-  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || 'ユーザー定義項目3';
-
-  return 'キー項目';
+  return base?.label || 'キー項目';
 };
 
 export default function KeyItemsPage() {
-  const { keyGroups, settings, updateKeyItemRating, openEditKeyItemModal, loading } = useApp();
+  const { keyGroups, settings, updateKeyItemRating, openEditKeyItemModal, loading, t } = useApp();
   const router = useRouter();
 
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -70,7 +75,7 @@ export default function KeyItemsPage() {
   }
 
   const keyFieldId = settings?.key_fields && settings.key_fields.length > 0 ? settings.key_fields[0] : 'genre';
-  const keyLabel = getKeyFieldLabel(keyFieldId, settings);
+  const keyLabel = getKeyFieldLabel(keyFieldId, settings, t);
 
   // Extract all unique tags
   const availableTags = Array.from(
@@ -123,14 +128,14 @@ export default function KeyItemsPage() {
           {availableTags.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-slate-400" /> タグ:
+                <Tag className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_tag')}
               </span>
               <select
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
               >
-                <option value="all">すべて</option>
+                <option value="all">{t('all')}</option>
                 {availableTags.map((tag) => (
                   <option key={tag} value={tag}>
                     {tag}
@@ -143,7 +148,7 @@ export default function KeyItemsPage() {
           {/* Rating Filter Controls */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-slate-400" /> 評価:
+              <Star className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_rating')}
             </span>
             <select
               value={ratingFilter}
@@ -157,29 +162,29 @@ export default function KeyItemsPage() {
               }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
             >
-              <option value="all">すべて</option>
+              <option value="all">{t('all')}</option>
               {[5, 4, 3, 2, 1].map((r) => (
                 <option key={r} value={r}>
                   ★{r}
                 </option>
               ))}
               <hr className="border-slate-800 my-1" />
-              <option value="gte4">★4以上</option>
-              <option value="gte3">★3以上</option>
+              <option value="gte4">{t('movies_list_rating_gte4')}</option>
+              <option value="gte3">{t('movies_list_rating_gte3')}</option>
             </select>
           </div>
 
-          {/* Sort Controls */}
+          {/* Sort Bar */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <ArrowUpDown className="w-3.5 h-3.5" /> ソート:
+              <ArrowUpDown className="w-3.5 h-3.5" /> {t('key_list_sort_label')}
             </span>
             <button
               onClick={toggleSort}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 border-blue-500 text-blue-400 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:border-slate-700 transition-colors"
             >
               <span>{keyLabel}</span>
-              <ArrowUpDown className="w-3.5 h-3.5" />
+              <ArrowUpDown className="w-3 h-3 text-blue-400" />
             </button>
           </div>
 
@@ -188,7 +193,7 @@ export default function KeyItemsPage() {
             onClick={() => setIsTextListModalOpen(true)}
             className="flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border-blue-500/40 transition-colors cursor-pointer"
           >
-            <span>テキスト表示</span>
+            <span>{t('key_list_text_display')}</span>
           </button>
         </div>
       </div>
@@ -199,11 +204,11 @@ export default function KeyItemsPage() {
           <div className="w-16 h-16 rounded-full bg-slate-800/80 flex items-center justify-center mx-auto text-slate-500">
             <Film className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-200">該当するキー項目がありません</h3>
+          <h3 className="text-lg font-semibold text-slate-200">{t('key_list_empty')}</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto">
             {tagFilter !== 'all' || ratingFilter !== 'all'
-              ? '絞り込み条件を変更して再度ご確認ください。'
-              : '動画ファイルを画面上にドラッグ＆ドロップして追加してください。'}
+              ? t('movies_list_empty_filter_desc')
+              : t('key_list_empty_desc')}
           </p>
         </div>
       )}
@@ -235,7 +240,7 @@ export default function KeyItemsPage() {
 
                 {/* Badge count */}
                 <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30">
-                  {group.movie_count} 本の動画
+                  {t('key_list_movies_count', { count: group.movie_count })}
                 </div>
               </div>
 
@@ -289,17 +294,17 @@ export default function KeyItemsPage() {
                     <button
                       onClick={() => openEditKeyItemModal(group)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors cursor-pointer"
-                      title="キー項目を編集"
+                      title={t('edit')}
                     >
                       <Edit className="w-3.5 h-3.5 text-blue-400" />
-                      <span>編集</span>
+                      <span>{t('edit')}</span>
                     </button>
 
                     <button
                       onClick={() => handleRowClick(group)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors cursor-pointer"
                     >
-                      <span>動画一覧</span>
+                      <span>{t('movies_list_title')}</span>
                     </button>
                   </div>
                 </div>
@@ -329,7 +334,7 @@ export default function KeyItemsPage() {
             <div className="p-5 overflow-y-auto flex-1 max-h-[60vh]">
               {sortedGroups.length === 0 ? (
                 <div className="text-center py-8 text-slate-500 text-sm">
-                  該当するキー項目がありません
+                  {t('key_list_empty')}
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2.5">

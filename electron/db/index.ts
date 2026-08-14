@@ -42,6 +42,7 @@ export function initDatabase() {
         custom_field_3_name: null,
         key_fields: ['genre', 'cast'],
         field_order: DEFAULT_FIELD_ORDER,
+        language: 'auto',
       },
       movies: [],
       keyRatings: {},
@@ -72,6 +73,7 @@ export function saveAppSettings(input: {
   custom_field_3_name?: string | null;
   key_fields?: string[];
   field_order?: string[];
+  language?: 'auto' | 'ja' | 'en' | null;
 }): AppSettings {
   if (!jsonDb) initDatabase();
   jsonDb!.settings = {
@@ -80,6 +82,7 @@ export function saveAppSettings(input: {
     is_initialized: input.is_initialized !== undefined ? input.is_initialized : jsonDb!.settings.is_initialized,
     key_fields: input.key_fields || jsonDb!.settings.key_fields,
     field_order: input.field_order || jsonDb!.settings.field_order || DEFAULT_FIELD_ORDER,
+    language: input.language !== undefined ? input.language : (jsonDb!.settings.language || 'auto'),
   };
   saveDatabase();
   return jsonDb!.settings;
@@ -355,6 +358,7 @@ export function resetAllData(): AppSettings {
       custom_field_3_name: null,
       key_fields: ['genre'],
       field_order: DEFAULT_FIELD_ORDER,
+      language: 'auto',
     },
     movies: [],
     keyRatings: {},

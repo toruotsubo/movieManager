@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UploadCloud } from 'lucide-react';
+import { useApp } from './AppProvider';
 
 interface DragDropWrapperProps {
   children: React.ReactNode;
@@ -77,6 +78,8 @@ export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFi
     }
   };
 
+  const { t } = useApp();
+
   return (
     <div
       onDragOver={handleDragOver}
@@ -92,8 +95,8 @@ export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFi
           <div className="p-6 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-400 mb-4 animate-bounce">
             <UploadCloud className="w-16 h-16" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">動画ファイルをドロップ</h2>
-          <p className="text-slate-300 text-sm">項目入力フォームが自動で開きます</p>
+          <h2 className="text-2xl font-bold text-white mb-2">{t('drag_drop_overlay_title')}</h2>
+          <p className="text-slate-300 text-sm">{t('drag_drop_overlay_desc')}</p>
         </div>
       )}
     </div>

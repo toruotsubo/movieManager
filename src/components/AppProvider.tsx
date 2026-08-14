@@ -9,11 +9,16 @@ import { KeyItemFormModal } from './KeyItemFormModal';
 import { DragDropWrapper } from './DragDropWrapper';
 import { getSplitValues, getKanaForCast } from '../lib/utils';
 
+import { Language, TranslationKey, t as translate } from '../lib/translations';
+
 interface AppContextType {
   settings: AppSettings | null;
   movies: Movie[];
   keyGroups: KeyItemGroup[];
   loading: boolean;
+  lang: Language;
+  showKana: boolean;
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string;
   refreshData: () => Promise<void>;
   updateMovieRating: (id: number, rating: number) => Promise<void>;
   updateKeyItemRating: (signature: string, rating: number) => Promise<void>;
@@ -40,6 +45,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [keyGroups, setKeyGroups] = useState<KeyItemGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detectedLang, setDetectedLang] = useState<Language>('ja');
+
+  // Detect OS Language
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.navigator) {
+      const navLang = window.navigator.language || '';
+      setDetectedLang(navLang.toLowerCase().startsWith('ja') ? 'ja' : 'en');
+    }
+  }, []);
+
+  const currentLang: Language = React.useMemo(() => {
+    if (settings?.language === 'ja') return 'ja';
+    if (settings?.language === 'en') return 'en';
+    return detectedLang;
+  }, [settings?.language, detectedLang]);
+
+  const showKana = currentLang === 'ja';
+
+  const tFunc = React.useCallback(
+    (key: TranslationKey, params?: Record<string, string | number>) => {
+      return translate(key, currentLang, params);
+    },
+    [currentLang]
+  );
 
   // Modal States
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -242,6 +271,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         movies,
         keyGroups,
         loading,
+        lang: currentLang,
+        showKana,
+        t: tFunc,
         refreshData,
         updateMovieRating,
         updateKeyItemRating,

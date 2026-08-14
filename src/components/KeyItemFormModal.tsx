@@ -32,7 +32,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
   onSave,
   onClose,
 }) => {
-  const { settings } = useApp();
+  const { settings, showKana, t } = useApp();
   const [castKana, setCastKana] = useState('');
   const [tags, setTags] = useState('');
   const [rating, setRating] = useState<number>(3);
@@ -101,7 +101,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           {/* Rating Field (Key Item Specific) */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 block">
-              評価 （{keyLabel}専用）
+              {t('key_modal_rating_label')} （{keyLabel}）
             </label>
             <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
               <RatingStars
@@ -112,33 +112,35 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
             </div>
           </div>
 
-          {/* Cast Kana Field */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 block">
-              主演（ふりがな）
-            </label>
-            <input
-              type="text"
-              value={castKana}
-              onChange={(e) => setCastKana(e.target.value)}
-              placeholder="例: やまだ たろう"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-            />
-            <p className="text-[11px] text-slate-500">
-              ※{titleString}のすべての動画データに反映されます。
-            </p>
-          </div>
+          {/* Cast Kana Field (Only shown in Japanese) */}
+          {showKana && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300 block">
+                {t('key_modal_cast_kana_label')}
+              </label>
+              <input
+                type="text"
+                value={castKana}
+                onChange={(e) => setCastKana(e.target.value)}
+                placeholder={t('key_modal_cast_kana_placeholder')}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              />
+              <p className="text-[11px] text-slate-500">
+                ※{titleString}のすべての動画データに反映されます。
+              </p>
+            </div>
+          )}
 
           {/* Tags Field (Key Item Specific) */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 block">
-              タグ （{keyLabel}専用）
+              {t('key_modal_tags_label')} （{keyLabel}）
             </label>
             <input
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="例: アクション, 主演作, オススメ"
+              placeholder={t('key_modal_tags_placeholder')}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
             />
           </div>
@@ -150,7 +152,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800 hover:bg-slate-800 transition-colors"
             >
-              キャンセル
+              {t('cancel')}
             </button>
             <button
               type="submit"
@@ -158,7 +160,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
               className="flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 shadow-lg shadow-blue-600/30 transition-colors cursor-pointer"
             >
               <Save className="w-4 h-4" />
-              <span>{saving ? '保存中...' : '保存'}</span>
+              <span>{saving ? t('saving') : t('save')}</span>
             </button>
           </div>
         </form>

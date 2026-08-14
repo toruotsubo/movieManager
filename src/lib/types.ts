@@ -6,6 +6,7 @@ export interface AppSettings {
   custom_field_3_name: string | null;
   key_fields: string[]; // JSON array stored in DB
   field_order?: string[]; // Order of metadata fields
+  language?: 'auto' | 'ja' | 'en' | null; // Language setting
 }
 
 export interface Movie {

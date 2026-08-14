@@ -14,7 +14,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
   const pathname = usePathname();
-  const { settings } = useApp();
+  const { settings, t } = useApp();
 
   const isKeyItemsActive = pathname === '/';
   const isMoviesActive = pathname === '/movies' || pathname.startsWith('/movies/');
@@ -23,15 +23,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
   const baseField = ALL_BASE_FIELDS.find((f) => f.id === keyFieldId);
 
   let keyLabel = 'キー項目';
-  if (baseField) {
-    keyLabel = baseField.label;
-  } else if (keyFieldId === 'custom_field_1') {
-    keyLabel = settings?.custom_field_1_name || 'ユーザー定義項目1';
-  } else if (keyFieldId === 'custom_field_2') {
-    keyLabel = settings?.custom_field_2_name || 'ユーザー定義項目2';
-  } else if (keyFieldId === 'custom_field_3') {
-    keyLabel = settings?.custom_field_3_name || 'ユーザー定義項目3';
-  }
+  if (keyFieldId === 'title') keyLabel = t('field_title');
+  else if (keyFieldId === 'genre') keyLabel = t('field_genre');
+  else if (keyFieldId === 'cast') keyLabel = t('field_cast');
+  else if (keyFieldId === 'release_year') keyLabel = t('field_release_year');
+  else if (keyFieldId === 'release_date') keyLabel = t('field_release_date');
+  else if (keyFieldId === 'rating') keyLabel = t('field_rating');
+  else if (keyFieldId === 'custom_field_1') keyLabel = settings?.custom_field_1_name || t('field_custom_1_default');
+  else if (keyFieldId === 'custom_field_2') keyLabel = settings?.custom_field_2_name || t('field_custom_2_default');
+  else if (keyFieldId === 'custom_field_3') keyLabel = settings?.custom_field_3_name || t('field_custom_3_default');
+  else if (baseField) keyLabel = baseField.label;
 
   return (
     <header className="sticky top-0 z-40 w-full glass-card border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
@@ -49,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
             )}
           >
             <LayoutGrid className="w-4 h-4" />
-            <span>{keyLabel}一覧</span>
+            <span>{t('key_list_title', { key: keyLabel })}</span>
           </Link>
           <Link
             href="/movies"
@@ -61,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
             )}
           >
             <List className="w-4 h-4" />
-            <span>動画一覧</span>
+            <span>{t('movies_list_title')}</span>
           </Link>
         </nav>
 
@@ -69,13 +70,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-slate-800/40 px-3 py-1.5 rounded-lg border border-slate-700/40">
             <UploadCloud className="w-4 h-4 text-blue-400 animate-pulse" />
-            <span>動画をドロップして追加</span>
+            <span>{t('drag_drop_overlay_title')}</span>
           </div>
 
           <button
             onClick={onOpenSettings}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors border border-transparent hover:border-slate-700"
-            title="設定"
+            title={t('nav_settings')}
           >
             <Settings className="w-5 h-5" />
           </button>

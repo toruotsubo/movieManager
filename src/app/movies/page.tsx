@@ -23,19 +23,24 @@ import { clsx } from 'clsx';
 
 type SortKey = 'title' | 'genre' | 'key_field' | 'release';
 
-const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string => {
+const getKeyFieldLabel = (keyId: string, settings: AppSettings | null, tFunc: (k: any) => string): string => {
+  if (keyId === 'title') return tFunc('field_title');
+  if (keyId === 'genre') return tFunc('field_genre');
+  if (keyId === 'cast') return tFunc('field_cast');
+  if (keyId === 'release_year') return tFunc('field_release_year');
+  if (keyId === 'release_date') return tFunc('field_release_date');
+  if (keyId === 'rating') return tFunc('field_rating');
+
+  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || tFunc('field_custom_1_default');
+  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || tFunc('field_custom_2_default');
+  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || tFunc('field_custom_3_default');
+
   const base = ALL_BASE_FIELDS.find((f) => f.id === keyId);
-  if (base) return base.label;
-
-  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || 'ユーザー定義項目1';
-  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || 'ユーザー定義項目2';
-  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || 'ユーザー定義項目3';
-
-  return 'キー項目';
+  return base?.label || 'キー項目';
 };
 
 function MoviesContent() {
-  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading } = useApp();
+  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading, t } = useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterSignature = searchParams.get('filter');
@@ -87,7 +92,7 @@ function MoviesContent() {
 
   const keyFields = settings?.key_fields || [];
   const keyFieldId = keyFields.length > 0 ? keyFields[0] : 'genre';
-  const keyLabel = getKeyFieldLabel(keyFieldId, settings);
+  const keyLabel = getKeyFieldLabel(keyFieldId, settings, t);
 
   const filterValues = useMemo(() => {
     if (!filterSignature) return null;
@@ -106,10 +111,10 @@ function MoviesContent() {
         }
         return String(val);
       });
-      return formattedVals.join(' / ');
+      return t('movies_list_filtered_title', { value: formattedVals.join(' / ') });
     }
-    return '動画一覧';
-  }, [filterValues]);
+    return t('movies_list_title');
+  }, [filterValues, t]);
 
   // Extract all unique tags across movies
   const availableTags = useMemo(() => {
@@ -251,12 +256,12 @@ function MoviesContent() {
   }
 
   const sortItems: { id: SortKey; label: string }[] = [
-    { id: 'title', label: 'タイトル' },
-    { id: 'genre', label: 'カテゴリ' },
+    { id: 'title', label: t('field_title') },
+    { id: 'genre', label: t('field_genre') },
     ...(keyFieldId !== 'title' && keyFieldId !== 'genre' && keyFieldId !== 'release_year' && keyFieldId !== 'release_date'
       ? [{ id: 'key_field' as SortKey, label: keyLabel }]
       : []),
-    { id: 'release', label: '公開年月日' },
+    { id: 'release', label: t('field_release_full') },
   ];
 
   return (
@@ -270,7 +275,7 @@ function MoviesContent() {
               <span>{pageTitle}</span>
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              {sortedMovies.length} 本
+              {t('movies_list_movies_count', { count: sortedMovies.length })}
             </p>
           </div>
 
@@ -279,9 +284,9 @@ function MoviesContent() {
             <button
               onClick={() => router.push('/movies')}
               className="flex items-center gap-1.5 bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/40 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              title="キー項目絞り込み解除"
+              title={t('key_list_filter_clear')}
             >
-              <span>絞り込み解除</span>
+              <span>{t('key_list_filter_clear')}</span>
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -293,14 +298,14 @@ function MoviesContent() {
           {availableTags.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-slate-400" /> タグ:
+                <Tag className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_tag')}
               </span>
               <select
                 value={tagFilter}
                 onChange={(e) => setTagFilter(e.target.value)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
               >
-                <option value="all">すべて</option>
+                <option value="all">{t('all')}</option>
                 {availableTags.map((tag) => (
                   <option key={tag} value={tag}>
                     {tag}
@@ -313,7 +318,7 @@ function MoviesContent() {
           {/* Rating Filter Controls */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-slate-400" /> 評価:
+              <Star className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_rating')}
             </span>
             <select
               value={ratingFilter}
@@ -327,22 +332,22 @@ function MoviesContent() {
               }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
             >
-              <option value="all">すべて</option>
+              <option value="all">{t('all')}</option>
               {[5, 4, 3, 2, 1].map((r) => (
                 <option key={r} value={r}>
                   ★{r}
                 </option>
               ))}
               <hr className="border-slate-800 my-1" />
-              <option value="gte4">★4以上</option>
-              <option value="gte3">★3以上</option>
+              <option value="gte4">{t('movies_list_rating_gte4')}</option>
+              <option value="gte3">{t('movies_list_rating_gte3')}</option>
             </select>
           </div>
 
           {/* Sort Bar */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-slate-400 flex items-center gap-1">
-              <ArrowUpDown className="w-3.5 h-3.5" /> ソート:
+              <ArrowUpDown className="w-3.5 h-3.5" /> {t('key_list_sort_label')}
             </span>
             {sortItems.map((item) => (
               <button
@@ -393,7 +398,7 @@ function MoviesContent() {
               <div
                 onClick={() => openMoviePlayer(movie.file_path)}
                 className="relative aspect-video w-full bg-slate-950 overflow-hidden group/img cursor-pointer"
-                title="クリックで動画再生"
+                title={t('movies_list_play_tooltip')}
               >
                 {imageSrc ? (
                   <img
@@ -411,7 +416,7 @@ function MoviesContent() {
                 {/* Group count badge */}
                 {groupCount > 1 && (
                   <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 z-10">
-                    {groupCount} 本のグループ
+                    {t('movies_list_group_badge', { count: groupCount })}
                   </div>
                 )}
 
@@ -566,10 +571,10 @@ function MoviesContent() {
                     <button
                       onClick={() => openEditMovieModal(movie)}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors"
-                      title="項目入力フォームを開く"
+                      title={t('edit')}
                     >
                       <Edit className="w-3.5 h-3.5 text-blue-400" />
-                      <span>編集</span>
+                      <span>{t('edit')}</span>
                     </button>
                     <button
                       onClick={() => {
@@ -582,7 +587,7 @@ function MoviesContent() {
                       }}
                       className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors"
                     >
-                      <span>動画詳細</span>
+                      <span>{t('movies_list_detail_btn')}</span>
                     </button>
                   </div>
                 </div>

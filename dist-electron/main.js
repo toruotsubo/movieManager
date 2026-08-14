@@ -102,7 +102,8 @@ function initDatabase() {
         custom_field_2_name: null,
         custom_field_3_name: null,
         key_fields: ["genre", "cast"],
-        field_order: DEFAULT_FIELD_ORDER
+        field_order: DEFAULT_FIELD_ORDER,
+        language: "auto"
       },
       movies: [],
       keyRatings: {},
@@ -128,7 +129,8 @@ function saveAppSettings(input) {
     ...input,
     is_initialized: input.is_initialized !== void 0 ? input.is_initialized : jsonDb.settings.is_initialized,
     key_fields: input.key_fields || jsonDb.settings.key_fields,
-    field_order: input.field_order || jsonDb.settings.field_order || DEFAULT_FIELD_ORDER
+    field_order: input.field_order || jsonDb.settings.field_order || DEFAULT_FIELD_ORDER,
+    language: input.language !== void 0 ? input.language : jsonDb.settings.language || "auto"
   };
   saveDatabase();
   return jsonDb.settings;
@@ -360,7 +362,8 @@ function resetAllData() {
       custom_field_2_name: null,
       custom_field_3_name: null,
       key_fields: ["genre"],
-      field_order: DEFAULT_FIELD_ORDER
+      field_order: DEFAULT_FIELD_ORDER,
+      language: "auto"
     },
     movies: [],
     keyRatings: {},

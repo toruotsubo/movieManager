@@ -29,7 +29,7 @@ import {
 function MovieDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, refreshData, loading } = useApp();
+  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, refreshData, loading, showKana, t } = useApp();
 
   const movieId = Number(searchParams.get('id'));
   const filterSignature = searchParams.get('filter');
@@ -138,14 +138,14 @@ function MovieDetailContent() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm shadow-lg shadow-blue-500/20 transition-all whitespace-nowrap"
           >
             <Edit className="w-4 h-4" />
-            <span>編集</span>
+            <span>{t('edit')}</span>
           </button>
 
           <button
             onClick={handleBack}
             className="flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-sm font-medium border border-blue-500/40 transition-colors whitespace-nowrap"
           >
-            <span>戻る</span>
+            <span>{t('back')}</span>
           </button>
         </div>
       </div>
@@ -155,7 +155,7 @@ function MovieDetailContent() {
         <div
           onClick={() => openMoviePlayer(movie.file_path)}
           className="relative aspect-video w-full max-w-[720px] mx-auto rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 cursor-pointer group shadow-2xl"
-          title="クリックで動画再生"
+          title={t('movies_list_play_tooltip')}
         >
           {imageSrc ? (
             <img
@@ -166,7 +166,7 @@ function MovieDetailContent() {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900">
               <Film className="w-12 h-12 mb-2 opacity-40" />
-              <span className="text-sm">サマリー画像なし</span>
+              <span className="text-sm">{t('detail_no_summary_img')}</span>
             </div>
           )}
 
@@ -184,7 +184,7 @@ function MovieDetailContent() {
           <div className="flex items-center gap-2.5">
             <Clock className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
-              <span className="text-[11px] text-slate-400 block font-medium">動画の長さ</span>
+              <span className="text-[11px] text-slate-400 block font-medium">{t('field_duration')}</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
                 {formatDuration(movie.duration)}
               </span>
@@ -195,7 +195,7 @@ function MovieDetailContent() {
           <div className="flex items-center gap-2.5">
             <Monitor className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
-              <span className="text-[11px] text-slate-400 block font-medium">画面サイズ</span>
+              <span className="text-[11px] text-slate-400 block font-medium">{t('field_resolution')}</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
                 {formatResolution(movie.width, movie.height)}
               </span>
@@ -206,7 +206,7 @@ function MovieDetailContent() {
           <div className="flex items-center gap-2.5">
             <Gauge className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
-              <span className="text-[11px] text-slate-400 block font-medium">フレームレート</span>
+              <span className="text-[11px] text-slate-400 block font-medium">{t('field_frame_rate')}</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
                 {formatFrameRate(movie.frame_rate)}
               </span>
@@ -217,7 +217,7 @@ function MovieDetailContent() {
           <div className="flex items-center gap-2.5">
             <HardDrive className="w-4 h-4 text-slate-500 shrink-0" />
             <div className="min-w-0">
-              <span className="text-[11px] text-slate-400 block font-medium">ファイルサイズ</span>
+              <span className="text-[11px] text-slate-400 block font-medium">{t('field_file_size')}</span>
               <span className="text-sm font-semibold text-slate-200 font-mono truncate block">
                 {formatFileSize(movie.file_size)}
               </span>
@@ -231,7 +231,7 @@ function MovieDetailContent() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-blue-400" />
-                <span>グループ動画一覧 ({groupMovies.length}本)</span>
+                <span>{t('detail_group_title', { count: groupMovies.length })}</span>
               </span>
             </div>
 
@@ -248,7 +248,7 @@ function MovieDetailContent() {
                         ? 'border-blue-500 ring-2 ring-blue-500/50'
                         : 'border-slate-800 hover:border-slate-600'
                       }`}
-                    title="クリックで動画再生"
+                    title={t('movies_list_play_tooltip')}
                   >
                     {gImgSrc ? (
                       <img
@@ -262,11 +262,9 @@ function MovieDetailContent() {
                       </div>
                     )}
 
-
-
                     {isCurrent && (
                       <div className="absolute top-1 right-1 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                        表示中
+                        {t('detail_displaying')}
                       </div>
                     )}
 
@@ -282,7 +280,7 @@ function MovieDetailContent() {
 
         {/* Rating Header */}
         <div className="flex items-center justify-between p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-          <span className="text-sm font-semibold text-slate-200">評価</span>
+          <span className="text-sm font-semibold text-slate-200">{t('field_rating')}</span>
           <RatingStars
             rating={movie.rating}
             onChange={(newRating) => updateMovieRating(movie.id, newRating)}
@@ -303,7 +301,7 @@ function MovieDetailContent() {
                 return (
                   <div key="genre" className="space-y-1">
                     <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                      <Shapes className="w-3.5 h-3.5" /> カテゴリ
+                      <Shapes className="w-3.5 h-3.5" /> {t('field_genre')}
                     </span>
                     <p className="text-sm font-medium text-slate-200">{movie.genre || '-'}</p>
                   </div>
@@ -314,11 +312,11 @@ function MovieDetailContent() {
                 return (
                   <div key="cast" className="space-y-1">
                     <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> 主演
+                      <User className="w-3.5 h-3.5" /> {t('field_cast')}
                     </span>
                     <p className="text-sm font-medium text-slate-200">
                       {movie.cast || '-'}
-                      {movie.cast_kana ? <span className="text-xs text-slate-400 font-normal ml-2">({movie.cast_kana})</span> : null}
+                      {showKana && movie.cast_kana ? <span className="text-xs text-slate-400 font-normal ml-2">({movie.cast_kana})</span> : null}
                     </p>
                   </div>
                 );
@@ -330,7 +328,7 @@ function MovieDetailContent() {
                 return (
                   <div key="release" className="space-y-1">
                     <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" /> 公開年月日
+                      <Calendar className="w-3.5 h-3.5" /> {t('field_release_full')}
                     </span>
                     <p className="text-sm font-medium text-slate-200">
                       {formatReleaseDate(movie.release_year, movie.release_date)}
@@ -360,7 +358,7 @@ function MovieDetailContent() {
           {/* Comment */}
           <div className="md:col-span-2 space-y-1">
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5" /> コメント
+              <MessageSquare className="w-3.5 h-3.5" /> {t('field_comment')}
             </span>
             <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 min-h-[80px]">
               <p className="text-sm text-slate-300 whitespace-pre-wrap">
@@ -373,7 +371,7 @@ function MovieDetailContent() {
           {movie.tags && (
             <div className="md:col-span-2 space-y-1.5">
               <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                <Tags className="w-3.5 h-3.5" /> タグ
+                <Tags className="w-3.5 h-3.5" /> {t('field_tags')}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {getSplitValues(movie.tags).map((tag, idx) => (
@@ -391,7 +389,7 @@ function MovieDetailContent() {
           {/* File Path */}
           <div className="md:col-span-2 space-y-1">
             <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> 参照ファイルパス
+              <FileText className="w-3.5 h-3.5" /> {t('field_file_path')}
             </span>
             <p className="text-sm font-mono bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-slate-300 break-all">
               {movie.file_path}
@@ -405,7 +403,7 @@ function MovieDetailContent() {
 
 export default function MovieDetailPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center p-12 text-slate-400">読み込み中...</div>}>
+    <Suspense fallback={<div className="flex justify-center p-12 text-slate-400">Loading...</div>}>
       <MovieDetailContent />
     </Suspense>
   );

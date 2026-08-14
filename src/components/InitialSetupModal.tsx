@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppSettings, ALL_BASE_FIELDS, DEFAULT_FIELD_ORDER } from '../lib/types';
-import { Settings, Check, Radio, Circle, RotateCcw, GripVertical, Lock } from 'lucide-react';
+import { Settings, Check, Radio, Circle, RotateCcw, GripVertical, Lock, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useApp } from './AppProvider';
+import { LanguageSetting } from '../lib/translations';
 
 interface InitialSetupModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ interface InitialSetupModalProps {
     custom_field_3_name: string | null;
     key_fields: string[];
     field_order?: string[];
+    language?: LanguageSetting;
   }) => void;
   onResetData?: () => Promise<void>;
   onClose?: () => void;
@@ -27,10 +30,12 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   onResetData,
   onClose,
 }) => {
+  const { t } = useApp();
   const [custom1, setCustom1] = useState('');
   const [custom2, setCustom2] = useState('');
   const [custom3, setCustom3] = useState('');
   const [selectedKeyField, setSelectedKeyField] = useState<string>('genre');
+  const [selectedLanguage, setSelectedLanguage] = useState<LanguageSetting>('auto');
 
   // 'title' と 'rating' 以外の項目の並び順ID配列
   const [reorderableFieldIds, setReorderableFieldIds] = useState<string[]>([
@@ -61,6 +66,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       setCustom1(currentSettings.custom_field_1_name || '');
       setCustom2(currentSettings.custom_field_2_name || '');
       setCustom3(currentSettings.custom_field_3_name || '');
+      setSelectedLanguage(currentSettings.language || 'auto');
 
       if (currentSettings.key_fields && currentSettings.key_fields.length > 0) {
         setSelectedKeyField(currentSettings.key_fields[0]);
@@ -85,15 +91,15 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
   // Helper to get field label by ID
   const getFieldLabel = (id: string): string => {
-    if (id === 'title') return 'タイトル';
-    if (id === 'genre') return 'カテゴリ';
-    if (id === 'cast') return '主演';
-    if (id === 'release_year') return '公開年';
-    if (id === 'release_date') return '公開月日';
-    if (id === 'rating') return '評価';
-    if (id === 'custom_field_1') return custom1.trim() || 'ユーザー定義項目1';
-    if (id === 'custom_field_2') return custom2.trim() || 'ユーザー定義項目2';
-    if (id === 'custom_field_3') return custom3.trim() || 'ユーザー定義項目3';
+    if (id === 'title') return t('field_title');
+    if (id === 'genre') return t('field_genre');
+    if (id === 'cast') return t('field_cast');
+    if (id === 'release_year') return t('field_release_year');
+    if (id === 'release_date') return t('field_release_date');
+    if (id === 'rating') return t('field_rating');
+    if (id === 'custom_field_1') return custom1.trim() || t('field_custom_1_default');
+    if (id === 'custom_field_2') return custom2.trim() || t('field_custom_2_default');
+    if (id === 'custom_field_3') return custom3.trim() || t('field_custom_3_default');
     return id;
   };
 
@@ -145,12 +151,13 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       custom_field_3_name: custom3.trim() || null,
       key_fields: [selectedKeyField], // Always single selection
       field_order: fullFieldOrder,
+      language: selectedLanguage,
     });
     if (onClose) onClose();
   };
 
   const handleResetData = async () => {
-    if (confirm('設定とすべての登録済み動画データを初期化しますか？この操作は取り消せません。')) {
+    if (confirm(t('confirmResetData'))) {
       if (onResetData) {
         await onResetData();
       }
@@ -158,6 +165,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       setCustom2('');
       setCustom3('');
       setSelectedKeyField('genre');
+      setSelectedLanguage('auto');
       setReorderableFieldIds(DEFAULT_FIELD_ORDER.filter((id) => id !== 'title' && id !== 'rating'));
     }
   };
@@ -171,18 +179,18 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
             <Settings className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">設定</h2>
+            <h2 className="text-xl font-bold text-white">{t('settings_title')}</h2>
           </div>
         </div>
 
         {/* Section 1: User defined fields */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
-            1. ユーザー定義項目（最大3つまで）
+            {t('settings_section1')}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">項目 1</label>
+              <label className="text-xs text-slate-400 mb-1 block">{t('settings_custom_item1')}</label>
               <input
                 type="text"
                 value={custom1}
@@ -192,7 +200,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">項目 2</label>
+              <label className="text-xs text-slate-400 mb-1 block">{t('settings_custom_item2')}</label>
               <input
                 type="text"
                 value={custom2}
@@ -202,7 +210,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">項目 3</label>
+              <label className="text-xs text-slate-400 mb-1 block">{t('settings_custom_item3')}</label>
               <input
                 type="text"
                 value={custom3}
@@ -217,10 +225,10 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
         {/* Section 2: Key item selection & Reordering */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
-            2. キー項目の選択と項目の並び替え
+            {t('settings_section2')}
           </h3>
           <p className="text-xs text-slate-400">
-            メインインデックスで使用するキー項目を1つ選択してください。タイトルと評価以外の項目はドラッグして表示順を変更できます。
+            {t('settings_section2_desc')}
           </p>
 
           <div className="space-y-2">
@@ -240,11 +248,11 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 ) : (
                   <Circle className="w-5 h-5 text-slate-600 shrink-0" />
                 )}
-                <span>タイトル</span>
+                <span>{t('field_title')}</span>
               </div>
               <div className="flex items-center gap-1 text-xs text-slate-500 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60">
                 <Lock className="w-3 h-3" />
-                <span>位置固定</span>
+                <span>{t('settings_fixed_position')}</span>
               </div>
             </div>
 
@@ -264,11 +272,11 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 ) : (
                   <Circle className="w-5 h-5 text-slate-600 shrink-0" />
                 )}
-                <span>評価</span>
+                <span>{t('field_rating')}</span>
               </div>
               <div className="flex items-center gap-1 text-xs text-slate-500 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60">
                 <Lock className="w-3 h-3" />
-                <span>位置固定</span>
+                <span>{t('settings_fixed_position')}</span>
               </div>
             </div>
 
@@ -323,6 +331,47 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
           </div>
         </div>
 
+        {/* Section 3: Language Selection */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+            <Globe className="w-4 h-4" />
+            <span>{t('settings_section3')}</span>
+          </h3>
+          <p className="text-xs text-slate-400">
+            {t('settings_section3_desc')}
+          </p>
+
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { id: 'auto', label: t('settings_lang_auto') },
+              { id: 'ja', label: t('settings_lang_ja') },
+              { id: 'en', label: t('settings_lang_en') },
+            ].map((langOpt) => {
+              const isSelected = selectedLanguage === langOpt.id;
+              return (
+                <button
+                  key={langOpt.id}
+                  type="button"
+                  onClick={() => setSelectedLanguage(langOpt.id as LanguageSetting)}
+                  className={clsx(
+                    'flex items-center gap-2.5 px-4 py-3 rounded-xl border text-sm font-medium transition-all text-left',
+                    isSelected
+                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500'
+                      : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  )}
+                >
+                  {isSelected ? (
+                    <Radio className="w-4 h-4 text-blue-400 shrink-0" />
+                  ) : (
+                    <Circle className="w-4 h-4 text-slate-600 shrink-0" />
+                  )}
+                  <span className="truncate">{langOpt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Footer actions */}
         <div className="pt-4 border-t border-slate-700/60 flex items-center justify-between gap-3">
           <button
@@ -332,7 +381,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
             title="設定と登録済みデータをすべて初期化"
           >
             <RotateCcw className="w-4 h-4" />
-            <span>データ初期化</span>
+            <span>{t('resetData')}</span>
           </button>
 
           <div className="flex items-center gap-3">
@@ -342,7 +391,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 onClick={onClose}
                 className="px-5 py-2.5 rounded-xl border border-slate-700 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
               >
-                キャンセル
+                {t('cancel')}
               </button>
             )}
             <button
@@ -351,7 +400,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-lg shadow-blue-500/25 transition-all"
             >
               <Check className="w-4 h-4" />
-              <span>設定を保存する</span>
+              <span>{t('saveSettings')}</span>
             </button>
           </div>
         </div>

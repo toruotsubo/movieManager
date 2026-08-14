@@ -19,6 +19,8 @@ import {
   Trash2,
 } from 'lucide-react';
 
+import { useApp } from './AppProvider';
+
 interface MovieFormModalProps {
   isOpen: boolean;
   movie: Partial<Movie> | null;
@@ -36,6 +38,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   onDelete,
   onClose,
 }) => {
+  const { showKana, t } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -295,7 +298,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 bg-slate-900/60">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-white">{movie?.id ? '動画データ編集' : '新規動画追加'}</h2>
+            <h2 className="text-lg font-bold text-white">{movie?.id ? t('form_edit_title') : t('form_add_title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -325,14 +328,14 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-500">
                       <Film className="w-12 h-12 mb-2 opacity-50" />
-                      <span className="text-sm">サマリー画像なし（クリックで動画再生）</span>
+                      <span className="text-sm">{t('form_no_summary_click')}</span>
                     </div>
                   )}
 
                   <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600/90 text-white font-medium shadow-lg backdrop-blur-sm">
                       <Play className="w-5 h-5 fill-current" />
-                      <span>動画を再生してキャプチャ</span>
+                      <span>{t('form_play_capture_btn')}</span>
                     </div>
                   </div>
                 </button>
@@ -346,7 +349,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         onClick={() => setIsPlayingVideo(false)}
                         className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-white"
                       >
-                        プレビューに戻る
+                        {t('form_back_to_preview')}
                       </button>
                     </div>
                   ) : (
@@ -431,7 +434,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         type="button"
                         onClick={() => seekBy(-5)}
                         className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
-                        title="5秒巻き戻し"
+                        title={t('form_rewind_5s')}
                       >
                         <RotateCcw className="w-3.5 h-3.5 text-slate-300" />
                         <span className="text-[10px] font-mono">-5s</span>
@@ -442,7 +445,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         type="button"
                         onClick={() => seekBy(5)}
                         className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
-                        title="5秒早送り"
+                        title={t('form_forward_5s')}
                       >
                         <RotateCw className="w-3.5 h-3.5 text-slate-300" />
                         <span className="text-[10px] font-mono">+5s</span>
@@ -456,10 +459,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         type="button"
                         onClick={() => stepFrame(-1)}
                         className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
-                        title="コマ送り（1フレーム戻る）"
+                        title={t('form_frame_back_tooltip')}
                       >
                         <ChevronLeft className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-[10px] font-medium">コマ戻し</span>
+                        <span className="text-[10px] font-medium">{t('form_frame_back')}</span>
                       </button>
 
                       {/* Step Frame Forward (+1 frame) */}
@@ -467,9 +470,9 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         type="button"
                         onClick={() => stepFrame(1)}
                         className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60 text-xs flex items-center gap-1 transition-colors"
-                        title="コマ送り（1フレーム進む）"
+                        title={t('form_frame_forward_tooltip')}
                       >
-                        <span className="text-[10px] font-medium">コマ送り</span>
+                        <span className="text-[10px] font-medium">{t('form_frame_forward')}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-blue-400" />
                       </button>
                     </div>
@@ -488,19 +491,19 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Title */}
             <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 mb-1 block">タイトル</label>
+              <label className="text-xs text-slate-400 mb-1 block">{t('field_title')}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="動画のタイトル"
+                placeholder={t('form_title_placeholder')}
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
             {/* Rating (Moved under Title) */}
             <div className="md:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-sm text-slate-300 font-medium">評価 (5段階)</span>
+              <span className="text-sm text-slate-300 font-medium">{t('form_rating_label')}</span>
               <RatingStars rating={rating} onChange={setRating} size="lg" />
             </div>
 
@@ -514,12 +517,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 if (fieldId === 'genre') {
                   return (
                     <div key="genre">
-                      <label className="text-xs text-slate-400 mb-1 block">カテゴリ</label>
+                      <label className="text-xs text-slate-400 mb-1 block">{t('field_genre')}</label>
                       <input
                         type="text"
                         value={genre}
                         onChange={(e) => setGenre(e.target.value)}
-                        placeholder="例: アクション, ドキュメンタリー"
+                        placeholder={t('form_genre_placeholder')}
                         className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                       />
                     </div>
@@ -530,25 +533,27 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                   return (
                     <React.Fragment key="cast">
                       <div>
-                        <label className="text-xs text-slate-400 mb-1 block">主演</label>
+                        <label className="text-xs text-slate-400 mb-1 block">{t('field_cast')}</label>
                         <input
                           type="text"
                           value={cast}
                           onChange={(e) => setCast(e.target.value)}
-                          placeholder="例: 山田太郎, 鈴木花子"
+                          placeholder={t('form_cast_placeholder')}
                           className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                         />
                       </div>
-                      <div>
-                        <label className="text-xs text-slate-400 mb-1 block">主演（ふりがな）</label>
-                        <input
-                          type="text"
-                          value={castKana}
-                          onChange={(e) => setCastKana(e.target.value)}
-                          placeholder="例: やまだたろう, すずきはなこ"
-                          className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                        />
-                      </div>
+                      {showKana && (
+                        <div>
+                          <label className="text-xs text-slate-400 mb-1 block">{t('field_cast_kana')}</label>
+                          <input
+                            type="text"
+                            value={castKana}
+                            onChange={(e) => setCastKana(e.target.value)}
+                            placeholder={t('form_cast_kana_placeholder')}
+                            className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+                      )}
                     </React.Fragment>
                   );
                 }
@@ -556,12 +561,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 if (fieldId === 'release_year') {
                   return (
                     <div key="release_year">
-                      <label className="text-xs text-slate-400 mb-1 block">公開年 (西暦)</label>
+                      <label className="text-xs text-slate-400 mb-1 block">{t('form_release_year_label')}</label>
                       <input
                         type="number"
                         value={releaseYear}
                         onChange={(e) => setReleaseYear(e.target.value ? Number(e.target.value) : '')}
-                        placeholder="例: 2024"
+                        placeholder={t('form_release_year_placeholder')}
                         className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                       />
                     </div>
@@ -571,12 +576,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 if (fieldId === 'release_date') {
                   return (
                     <div key="release_date">
-                      <label className="text-xs text-slate-400 mb-1 block">公開月日 (MM-DD)</label>
+                      <label className="text-xs text-slate-400 mb-1 block">{t('form_release_date_label')}</label>
                       <input
                         type="text"
                         value={releaseDate}
                         onChange={(e) => setReleaseDate(e.target.value)}
-                        placeholder="例: 08-15"
+                        placeholder={t('form_release_date_placeholder')}
                         className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
                       />
                     </div>
@@ -610,24 +615,24 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
 
             {/* Comment */}
             <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 mb-1 block">コメント</label>
+              <label className="text-xs text-slate-400 mb-1 block">{t('field_comment')}</label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={3}
-                placeholder="動画に関するメモやコメント"
+                placeholder={t('form_comment_placeholder')}
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>
 
             {/* Tags (Moved under Comment) */}
             <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 mb-1 block">タグ</label>
+              <label className="text-xs text-slate-400 mb-1 block">{t('field_tags')}</label>
               <input
                 type="text"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                placeholder="例: 4K, お気に入り, 名作 (カンマ区切り)"
+                placeholder={t('form_tags_placeholder')}
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
               />
             </div>
@@ -635,9 +640,9 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
             {/* Grouping Option (Moved under Tag) */}
             <div className="md:col-span-2 flex items-center justify-between p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
               <div className="space-y-0.5">
-                <span className="text-sm font-semibold text-slate-200 block">グループ化</span>
+                <span className="text-sm font-semibold text-slate-200 block">{t('form_grouping_label')}</span>
                 <span className="text-xs text-slate-400 block">
-                  同一タイトル・カテゴリ・{getKeyFieldsLabel()}・公開年月日の動画をグループ化
+                  {t('form_grouping_desc', { keyFields: getKeyFieldsLabel() })}
                 </span>
               </div>
               <button
@@ -648,7 +653,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                     : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
                   }`}
               >
-                {isGrouped ? 'ON' : 'OFF'}
+                {isGrouped ? t('on') : t('off')}
               </button>
             </div>
           </div>
@@ -662,10 +667,10 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 type="button"
                 onClick={handleDelete}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/40 bg-red-600/10 text-red-400 hover:bg-red-600/20 text-sm font-medium transition-colors"
-                title="動画を削除"
+                title={t('delete')}
               >
                 <Trash2 className="w-4 h-4" />
-                <span>削除</span>
+                <span>{t('delete')}</span>
               </button>
             )}
           </div>
@@ -676,7 +681,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               onClick={onClose}
               className="px-5 py-2.5 rounded-xl border border-slate-700 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
             >
-              キャンセル
+              {t('cancel')}
             </button>
 
             <button
@@ -686,7 +691,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              <span>{isCapturing ? '保存中...' : '保存'}</span>
+              <span>{isCapturing ? t('saving') : t('save')}</span>
             </button>
           </div>
         </div>
