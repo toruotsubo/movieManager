@@ -5,7 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl, getSplitValues, formatReleaseDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ALL_BASE_FIELDS, AppSettings, Movie } from '@/lib/types';
+import { ALL_BASE_FIELDS, AppSettings, Movie, DEFAULT_FIELD_ORDER } from '@/lib/types';
 import {
   Play,
   ArrowUpDown,
@@ -431,108 +431,104 @@ function MoviesContent() {
                   </h3>
 
                   <div className="space-y-1.5 text-xs text-slate-400">
-                    {/* Custom key field value if not filtered by this custom field */}
-                    {keyFieldId.startsWith('custom_field_') && (!filterValues || filterValues[keyFieldId] === undefined) && (
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-slate-300 font-medium">
-                          {keyLabel}:{' '}
-                          {(movie as any)[keyFieldId] ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleKeyItemClick(keyFieldId, (movie as any)[keyFieldId]);
-                              }}
-                              className="text-blue-400 hover:underline font-semibold cursor-pointer"
-                              title={`${keyLabel}「${(movie as any)[keyFieldId]}」で絞り込み`}
-                            >
-                              {(movie as any)[keyFieldId]}
-                            </button>
-                          ) : (
-                            '未指定'
-                          )}
-                        </span>
-                      </div>
-                    )}
+                    {/* Dynamic Field Ordering */}
+                    {(() => {
+                      const order = settings?.field_order || DEFAULT_FIELD_ORDER;
+                      let releaseDateRendered = false;
 
-                    {/* Category (genre) - excluded if filtered by genre */}
-                    {(!filterValues || filterValues['genre'] === undefined) && (
-                      <div className="flex items-center gap-2">
-                        <Shapes className="w-3.5 h-3.5 text-slate-500" />
-                        {movie.genre ? (
-                          <div className="flex flex-wrap items-center gap-1">
-                            {getSplitValues(movie.genre).map((gVal, idx) => (
-                              <React.Fragment key={idx}>
-                                {idx > 0 && <span className="text-slate-500">,</span>}
+                      return order.map((fieldId) => {
+                        if (fieldId === 'title' || fieldId === 'rating') return null;
+
+                        if (fieldId === 'genre') {
+                          if (filterValues && filterValues['genre'] !== undefined) return null;
+                          return (
+                            <div key="genre" className="flex items-center gap-2">
+                              <Shapes className="w-3.5 h-3.5 text-slate-500" />
+                              {movie.genre ? (
+                                <div className="flex flex-wrap items-center gap-1">
+                                  {getSplitValues(movie.genre).map((gVal, idx) => (
+                                    <React.Fragment key={idx}>
+                                      {idx > 0 && <span className="text-slate-500">,</span>}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleKeyItemClick('genre', gVal);
+                                        }}
+                                        className="text-blue-400 hover:underline font-semibold cursor-pointer"
+                                        title={`カテゴリ「${gVal}」で絞り込み`}
+                                      >
+                                        {gVal}
+                                      </button>
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-300">未指定</span>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        if (fieldId === 'cast') {
+                          if (filterValues && filterValues['cast'] !== undefined) return null;
+                          return (
+                            <div key="cast" className="flex items-center gap-2">
+                              <User className="w-3.5 h-3.5 text-slate-500" />
+                              {movie.cast ? (
+                                <div className="flex flex-wrap items-center gap-1">
+                                  {getSplitValues(movie.cast).map((cVal, idx) => (
+                                    <React.Fragment key={idx}>
+                                      {idx > 0 && <span className="text-slate-500">,</span>}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleKeyItemClick('cast', cVal);
+                                        }}
+                                        className="text-blue-400 hover:underline font-semibold cursor-pointer"
+                                        title={`主演「${cVal}」で絞り込み`}
+                                      >
+                                        {cVal}
+                                      </button>
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-300">未指定</span>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        if (fieldId === 'release_year' || fieldId === 'release_date') {
+                          if (releaseDateRendered) return null;
+                          releaseDateRendered = true;
+                          if (filterValues && (filterValues['release_year'] !== undefined || filterValues['release_date'] !== undefined)) return null;
+                          return (
+                            <div key="release" className="flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                              {movie.release_year ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleKeyItemClick('genre', gVal);
+                                    handleKeyItemClick('release_year', movie.release_year!);
                                   }}
                                   className="text-blue-400 hover:underline font-semibold cursor-pointer"
-                                  title={`カテゴリ「${gVal}」で絞り込み`}
+                                  title={`公開年「${movie.release_year}年」で絞り込み`}
                                 >
-                                  {gVal}
+                                  {formatReleaseDate(movie.release_year, movie.release_date)}
                                 </button>
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-300">未指定</span>
-                        )}
-                      </div>
-                    )}
+                              ) : (
+                                <span className="text-slate-300">
+                                  {formatReleaseDate(movie.release_year, movie.release_date)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
 
-                    {/* Cast - excluded if filtered by cast */}
-                    {(!filterValues || filterValues['cast'] === undefined) && (
-                      <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-slate-500" />
-                        {movie.cast ? (
-                          <div className="flex flex-wrap items-center gap-1">
-                            {getSplitValues(movie.cast).map((cVal, idx) => (
-                              <React.Fragment key={idx}>
-                                {idx > 0 && <span className="text-slate-500">,</span>}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleKeyItemClick('cast', cVal);
-                                  }}
-                                  className="text-blue-400 hover:underline font-semibold cursor-pointer"
-                                  title={`主演「${cVal}」で絞り込み`}
-                                >
-                                  {cVal}
-                                </button>
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-300">未指定</span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Release Date - excluded if filtered by release_year or release_date */}
-                    {(!filterValues || (filterValues['release_year'] === undefined && filterValues['release_date'] === undefined)) && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        {movie.release_year ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleKeyItemClick('release_year', movie.release_year!);
-                            }}
-                            className="text-blue-400 hover:underline font-semibold cursor-pointer"
-                            title={`公開年「${movie.release_year}年」で絞り込み`}
-                          >
-                            {formatReleaseDate(movie.release_year, movie.release_date)}
-                          </button>
-                        ) : (
-                          <span className="text-slate-300">
-                            {formatReleaseDate(movie.release_year, movie.release_date)}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                        return null;
+                      });
+                    })()}
 
                     {/* Tags Display */}
                     {movie.tags && (

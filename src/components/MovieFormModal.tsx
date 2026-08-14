@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Movie, AppSettings } from '../lib/types';
+import { Movie, AppSettings, DEFAULT_FIELD_ORDER } from '../lib/types';
 import { formatMediaUrl } from '../lib/utils';
 import { RatingStars } from './RatingStars';
 import {
@@ -504,104 +504,109 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               <RatingStars rating={rating} onChange={setRating} size="lg" />
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">カテゴリ</label>
-              <input
-                type="text"
-                value={genre}
-                onChange={(e) => setGenre(e.target.value)}
-                placeholder="例: アクション, ドキュメンタリー"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
+            {/* Dynamic Field Ordering */}
+            {(() => {
+              const order = settings?.field_order || DEFAULT_FIELD_ORDER;
 
-            {/* Cast */}
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">主演</label>
-              <input
-                type="text"
-                value={cast}
-                onChange={(e) => setCast(e.target.value)}
-                placeholder="例: 山田太郎, 鈴木花子"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
+              return order.map((fieldId) => {
+                if (fieldId === 'title' || fieldId === 'rating') return null;
 
-            {/* Cast Kana */}
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">主演（ふりがな）</label>
-              <input
-                type="text"
-                value={castKana}
-                onChange={(e) => setCastKana(e.target.value)}
-                placeholder="例: やまだたろう, すずきはなこ"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
+                if (fieldId === 'genre') {
+                  return (
+                    <div key="genre">
+                      <label className="text-xs text-slate-400 mb-1 block">カテゴリ</label>
+                      <input
+                        type="text"
+                        value={genre}
+                        onChange={(e) => setGenre(e.target.value)}
+                        placeholder="例: アクション, ドキュメンタリー"
+                        className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  );
+                }
 
-            {/* Release Year */}
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">公開年 (西暦)</label>
-              <input
-                type="number"
-                value={releaseYear}
-                onChange={(e) => setReleaseYear(e.target.value ? Number(e.target.value) : '')}
-                placeholder="例: 2024"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
+                if (fieldId === 'cast') {
+                  return (
+                    <React.Fragment key="cast">
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">主演</label>
+                        <input
+                          type="text"
+                          value={cast}
+                          onChange={(e) => setCast(e.target.value)}
+                          placeholder="例: 山田太郎, 鈴木花子"
+                          className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">主演（ふりがな）</label>
+                        <input
+                          type="text"
+                          value={castKana}
+                          onChange={(e) => setCastKana(e.target.value)}
+                          placeholder="例: やまだたろう, すずきはなこ"
+                          className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </React.Fragment>
+                  );
+                }
 
-            {/* Release Date */}
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">公開月日 (MM-DD)</label>
-              <input
-                type="text"
-                value={releaseDate}
-                onChange={(e) => setReleaseDate(e.target.value)}
-                placeholder="例: 08-15"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
+                if (fieldId === 'release_year') {
+                  return (
+                    <div key="release_year">
+                      <label className="text-xs text-slate-400 mb-1 block">公開年 (西暦)</label>
+                      <input
+                        type="number"
+                        value={releaseYear}
+                        onChange={(e) => setReleaseYear(e.target.value ? Number(e.target.value) : '')}
+                        placeholder="例: 2024"
+                        className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  );
+                }
 
-            {/* Custom Field 1 */}
-            {settings?.custom_field_1_name && (
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_1_name}</label>
-                <input
-                  type="text"
-                  value={custom1}
-                  onChange={(e) => setCustom1(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            )}
+                if (fieldId === 'release_date') {
+                  return (
+                    <div key="release_date">
+                      <label className="text-xs text-slate-400 mb-1 block">公開月日 (MM-DD)</label>
+                      <input
+                        type="text"
+                        value={releaseDate}
+                        onChange={(e) => setReleaseDate(e.target.value)}
+                        placeholder="例: 08-15"
+                        className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  );
+                }
 
-            {/* Custom Field 2 */}
-            {settings?.custom_field_2_name && (
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_2_name}</label>
-                <input
-                  type="text"
-                  value={custom2}
-                  onChange={(e) => setCustom2(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            )}
+                if (fieldId.startsWith('custom_field_')) {
+                  const num = fieldId.replace('custom_field_', '');
+                  const customName = (settings as any)?.[`custom_field_${num}_name`];
+                  if (!customName) return null;
 
-            {/* Custom Field 3 */}
-            {settings?.custom_field_3_name && (
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_3_name}</label>
-                <input
-                  type="text"
-                  value={custom3}
-                  onChange={(e) => setCustom3(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            )}
+                  const val = num === '1' ? custom1 : num === '2' ? custom2 : custom3;
+                  const setVal = num === '1' ? setCustom1 : num === '2' ? setCustom2 : setCustom3;
+
+                  return (
+                    <div key={fieldId}>
+                      <label className="text-xs text-slate-400 mb-1 block">{customName}</label>
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={(e) => setVal(e.target.value)}
+                        className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  );
+                }
+
+                return null;
+              });
+            })()}
 
             {/* Comment */}
             <div className="md:col-span-2">

@@ -7,9 +7,8 @@ import { formatMediaUrl, formatReleaseDate, getSplitValues } from '@/lib/utils';
 import { formatDuration, formatResolution, formatFrameRate, formatFileSize } from '@/lib/metadataExtractor';
 import { ensureLegacyMovieMetadata } from '@/lib/legacyMetadataFetcher';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Movie, AppSettings } from '@/lib/types';
+import { Movie, AppSettings, DEFAULT_FIELD_ORDER } from '@/lib/types';
 import {
-  ArrowLeft,
   Play,
   Edit,
   Film,
@@ -126,26 +125,29 @@ function MovieDetailContent() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Back Button & Title Header */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <button
-            onClick={handleBack}
-            className="p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold text-white truncate">
             {movie.title || movie.file_name}
           </h1>
         </div>
 
-        {/* Edit Button */}
-        <button
-          onClick={() => openEditMovieModal(movie)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm shadow-lg shadow-blue-500/20 transition-all shrink-0 whitespace-nowrap"
-        >
-          <Edit className="w-4 h-4" />
-          <span>編集</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => openEditMovieModal(movie)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm shadow-lg shadow-blue-500/20 transition-all whitespace-nowrap"
+          >
+            <Edit className="w-4 h-4" />
+            <span>編集</span>
+          </button>
+
+          <button
+            onClick={handleBack}
+            className="flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-sm font-medium border border-blue-500/40 transition-colors whitespace-nowrap"
+          >
+            <span>戻る</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary Image Hero Card (720px × 405px Aspect Ratio) */}
@@ -290,56 +292,70 @@ function MovieDetailContent() {
 
         {/* Metadata Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-          {/* Category (genre) */}
-          <div className="space-y-1">
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <Shapes className="w-3.5 h-3.5" /> カテゴリ
-            </span>
-            <p className="text-sm font-medium text-slate-200">{movie.genre || '-'}</p>
-          </div>
+          {(() => {
+            const order = settings?.field_order || DEFAULT_FIELD_ORDER;
+            let releaseDateRendered = false;
 
-          {/* Cast */}
-          <div className="space-y-1">
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5" /> 主演
-            </span>
-            <p className="text-sm font-medium text-slate-200">
-              {movie.cast || '-'}
-              {movie.cast_kana ? <span className="text-xs text-slate-400 font-normal ml-2">({movie.cast_kana})</span> : null}
-            </p>
-          </div>
+            return order.map((fieldId) => {
+              if (fieldId === 'title' || fieldId === 'rating') return null;
 
-          {/* Release Year & Date */}
-          <div className="space-y-1">
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5" /> 公開年月日
-            </span>
-            <p className="text-sm font-medium text-slate-200">
-              {formatReleaseDate(movie.release_year, movie.release_date)}
-            </p>
-          </div>
+              if (fieldId === 'genre') {
+                return (
+                  <div key="genre" className="space-y-1">
+                    <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                      <Shapes className="w-3.5 h-3.5" /> カテゴリ
+                    </span>
+                    <p className="text-sm font-medium text-slate-200">{movie.genre || '-'}</p>
+                  </div>
+                );
+              }
 
-          {/* Custom Fields */}
-          {settings?.custom_field_1_name && (
-            <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">{settings.custom_field_1_name}</span>
-              <p className="text-sm font-medium text-slate-200">{movie.custom_field_1 || '-'}</p>
-            </div>
-          )}
+              if (fieldId === 'cast') {
+                return (
+                  <div key="cast" className="space-y-1">
+                    <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" /> 主演
+                    </span>
+                    <p className="text-sm font-medium text-slate-200">
+                      {movie.cast || '-'}
+                      {movie.cast_kana ? <span className="text-xs text-slate-400 font-normal ml-2">({movie.cast_kana})</span> : null}
+                    </p>
+                  </div>
+                );
+              }
 
-          {settings?.custom_field_2_name && (
-            <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">{settings.custom_field_2_name}</span>
-              <p className="text-sm font-medium text-slate-200">{movie.custom_field_2 || '-'}</p>
-            </div>
-          )}
+              if (fieldId === 'release_year' || fieldId === 'release_date') {
+                if (releaseDateRendered) return null;
+                releaseDateRendered = true;
+                return (
+                  <div key="release" className="space-y-1">
+                    <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" /> 公開年月日
+                    </span>
+                    <p className="text-sm font-medium text-slate-200">
+                      {formatReleaseDate(movie.release_year, movie.release_date)}
+                    </p>
+                  </div>
+                );
+              }
 
-          {settings?.custom_field_3_name && (
-            <div className="space-y-1">
-              <span className="text-xs text-slate-500 font-medium">{settings.custom_field_3_name}</span>
-              <p className="text-sm font-medium text-slate-200">{movie.custom_field_3 || '-'}</p>
-            </div>
-          )}
+              if (fieldId.startsWith('custom_field_')) {
+                const num = fieldId.replace('custom_field_', '');
+                const customName = (settings as any)?.[`custom_field_${num}_name`];
+                if (!customName) return null;
+                const val = (movie as any)[fieldId];
+
+                return (
+                  <div key={fieldId} className="space-y-1">
+                    <span className="text-xs text-slate-500 font-medium">{customName}</span>
+                    <p className="text-sm font-medium text-slate-200">{val || '-'}</p>
+                  </div>
+                );
+              }
+
+              return null;
+            });
+          })()}
 
           {/* Comment */}
           <div className="md:col-span-2 space-y-1">

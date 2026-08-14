@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { AppSettings, ALL_BASE_FIELDS } from '../lib/types';
-import { Settings, Check, Radio, Circle, RotateCcw } from 'lucide-react';
+import { AppSettings, ALL_BASE_FIELDS, DEFAULT_FIELD_ORDER } from '../lib/types';
+import { Settings, Check, Radio, Circle, RotateCcw, GripVertical, Lock } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface InitialSetupModalProps {
@@ -14,6 +14,7 @@ interface InitialSetupModalProps {
     custom_field_2_name: string | null;
     custom_field_3_name: string | null;
     key_fields: string[];
+    field_order?: string[];
   }) => void;
   onResetData?: () => Promise<void>;
   onClose?: () => void;
@@ -30,6 +31,21 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   const [custom2, setCustom2] = useState('');
   const [custom3, setCustom3] = useState('');
   const [selectedKeyField, setSelectedKeyField] = useState<string>('genre');
+
+  // 'title' と 'rating' 以外の項目の並び順ID配列
+  const [reorderableFieldIds, setReorderableFieldIds] = useState<string[]>([
+    'genre',
+    'cast',
+    'release_year',
+    'release_date',
+    'custom_field_1',
+    'custom_field_2',
+    'custom_field_3',
+  ]);
+
+  // Drag state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const isLoadedRef = React.useRef(false);
 
@@ -51,35 +67,84 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       } else {
         setSelectedKeyField('genre');
       }
+
+      // Initialize field_order without 'title' and 'rating'
+      const defaultNonFixed = DEFAULT_FIELD_ORDER.filter((id) => id !== 'title' && id !== 'rating');
+      if (currentSettings.field_order && currentSettings.field_order.length > 0) {
+        const savedNonFixed = currentSettings.field_order.filter((id) => id !== 'title' && id !== 'rating');
+        // Ensure missing fields are appended
+        const missing = defaultNonFixed.filter((id) => !savedNonFixed.includes(id));
+        setReorderableFieldIds([...savedNonFixed, ...missing]);
+      } else {
+        setReorderableFieldIds(defaultNonFixed);
+      }
     }
   }, [isOpen, currentSettings]);
 
   if (!isOpen) return null;
 
-  // Available selectable fields for the single key field
-  const customItems = [
-    { id: 'custom_field_1', label: custom1.trim() || 'ユーザー定義項目1' },
-    { id: 'custom_field_2', label: custom2.trim() || 'ユーザー定義項目2' },
-    { id: 'custom_field_3', label: custom3.trim() || 'ユーザー定義項目3' },
-  ].filter((_, index) => {
-    if (index === 0) return Boolean(custom1.trim());
-    if (index === 1) return Boolean(custom2.trim());
-    if (index === 2) return Boolean(custom3.trim());
-    return false;
-  });
+  // Helper to get field label by ID
+  const getFieldLabel = (id: string): string => {
+    if (id === 'title') return 'タイトル';
+    if (id === 'genre') return 'カテゴリ';
+    if (id === 'cast') return '主演';
+    if (id === 'release_year') return '公開年';
+    if (id === 'release_date') return '公開月日';
+    if (id === 'rating') return '評価';
+    if (id === 'custom_field_1') return custom1.trim() || 'ユーザー定義項目1';
+    if (id === 'custom_field_2') return custom2.trim() || 'ユーザー定義項目2';
+    if (id === 'custom_field_3') return custom3.trim() || 'ユーザー定義項目3';
+    return id;
+  };
 
-  const availableKeyFields = [
-    ...ALL_BASE_FIELDS.map((f) => ({ id: f.id, label: f.label })),
-    ...customItems,
-  ];
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.stopPropagation();
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const updated = [...reorderableFieldIds];
+    const [moved] = updated.splice(draggedIndex, 1);
+    updated.splice(dropIndex, 0, moved);
+
+    setReorderableFieldIds(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   const handleSave = () => {
+    const fullFieldOrder = ['title', 'rating', ...reorderableFieldIds];
     onSave({
       is_initialized: true,
       custom_field_1_name: custom1.trim() || null,
       custom_field_2_name: custom2.trim() || null,
       custom_field_3_name: custom3.trim() || null,
       key_fields: [selectedKeyField], // Always single selection
+      field_order: fullFieldOrder,
     });
     if (onClose) onClose();
   };
@@ -93,6 +158,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
       setCustom2('');
       setCustom3('');
       setSelectedKeyField('genre');
+      setReorderableFieldIds(DEFAULT_FIELD_ORDER.filter((id) => id !== 'title' && id !== 'rating'));
     }
   };
 
@@ -148,39 +214,112 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
           </div>
         </div>
 
-        {/* Section 2: Key item selection (Single selection only) */}
+        {/* Section 2: Key item selection & Reordering */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
-            2. キー項目の選択（1つのみ）
+            2. キー項目の選択と項目の並び替え
           </h3>
           <p className="text-xs text-slate-400">
-            メインインデックスで使用する項目を1つ選択してください。
+            メインインデックスで使用するキー項目を1つ選択してください。タイトルと評価以外の項目はドラッグして表示順を変更できます。
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {availableKeyFields.map((field) => {
-              const isSelected = selectedKeyField === field.id;
-              return (
-                <button
-                  key={field.id}
-                  type="button"
-                  onClick={() => setSelectedKeyField(field.id)}
-                  className={clsx(
-                    'flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all text-left',
-                    isSelected
-                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500'
-                      : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  )}
-                >
-                  {isSelected ? (
-                    <Radio className="w-5 h-5 text-blue-400 shrink-0" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-slate-600 shrink-0" />
-                  )}
-                  <span>{field.label}</span>
-                </button>
-              );
-            })}
+          <div className="space-y-2">
+            {/* Title (Fixed at position 1) */}
+            <div
+              onClick={() => setSelectedKeyField('title')}
+              className={clsx(
+                'flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all cursor-pointer select-none',
+                selectedKeyField === 'title'
+                  ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500'
+                  : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                {selectedKeyField === 'title' ? (
+                  <Radio className="w-5 h-5 text-blue-400 shrink-0" />
+                ) : (
+                  <Circle className="w-5 h-5 text-slate-600 shrink-0" />
+                )}
+                <span>タイトル</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-slate-500 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60">
+                <Lock className="w-3 h-3" />
+                <span>位置固定</span>
+              </div>
+            </div>
+
+            {/* Rating (Fixed at position 2, directly under Title) */}
+            <div
+              onClick={() => setSelectedKeyField('rating')}
+              className={clsx(
+                'flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-medium transition-all cursor-pointer select-none',
+                selectedKeyField === 'rating'
+                  ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500'
+                  : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+              )}
+            >
+              <div className="flex items-center gap-3">
+                {selectedKeyField === 'rating' ? (
+                  <Radio className="w-5 h-5 text-blue-400 shrink-0" />
+                ) : (
+                  <Circle className="w-5 h-5 text-slate-600 shrink-0" />
+                )}
+                <span>評価</span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-slate-500 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60">
+                <Lock className="w-3 h-3" />
+                <span>位置固定</span>
+              </div>
+            </div>
+
+            {/* Reorderable Items List */}
+            <div className="grid grid-cols-1 gap-2 pt-1">
+              {reorderableFieldIds.map((fieldId, index) => {
+                const isSelected = selectedKeyField === fieldId;
+                const isDragging = draggedIndex === index;
+                const isDragOver = dragOverIndex === index;
+
+                return (
+                  <div
+                    key={fieldId}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onClick={() => setSelectedKeyField(fieldId)}
+                    className={clsx(
+                      'flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm font-medium transition-all cursor-pointer select-none',
+                      isSelected
+                        ? 'bg-blue-600/20 border-blue-500 text-white shadow-sm ring-1 ring-blue-500'
+                        : 'bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200',
+                      isDragging && 'opacity-40 border-dashed border-blue-400',
+                      isDragOver && 'border-blue-400 bg-blue-600/10 scale-[1.01]'
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="cursor-grab active:cursor-grabbing p-1 text-slate-500 hover:text-slate-300 rounded transition-colors"
+                        title="ドラッグして並び替え"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      {isSelected ? (
+                        <Radio className="w-5 h-5 text-blue-400 shrink-0" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-slate-600 shrink-0" />
+                      )}
+
+                      <span className="truncate">{getFieldLabel(fieldId)}</span>
+                    </div>
+
+                    <span className="text-xs text-slate-600 font-mono">#{index + 1}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -220,3 +359,4 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     </div>
   );
 };
+

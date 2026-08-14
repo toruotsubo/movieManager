@@ -5,6 +5,7 @@ export interface AppSettings {
   custom_field_2_name: string | null;
   custom_field_3_name: string | null;
   key_fields: string[]; // JSON array stored in DB
+  field_order?: string[]; // Order of metadata fields
 }
 
 export interface Movie {
@@ -92,3 +93,16 @@ export const ALL_BASE_FIELDS = [
   { id: 'release_date', label: '公開月日' },
   { id: 'rating', label: '評価' },
 ] as const;
+
+export const DEFAULT_FIELD_ORDER = [
+  'title',
+  'rating',
+  'genre',
+  'cast',
+  'release_year',
+  'release_date',
+  'custom_field_1',
+  'custom_field_2',
+  'custom_field_3',
+];
+

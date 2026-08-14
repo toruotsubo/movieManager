@@ -27,10 +27,19 @@ export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFi
     };
   }, []);
 
+  const isFileDrag = (e: React.DragEvent) => {
+    if (e.dataTransfer && e.dataTransfer.types) {
+      return Array.from(e.dataTransfer.types).includes('Files');
+    }
+    return false;
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isDragging) setIsDragging(true);
+    if (isFileDrag(e)) {
+      if (!isDragging) setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {

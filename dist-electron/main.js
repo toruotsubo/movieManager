@@ -33,6 +33,19 @@ var import_path = __toESM(require("path"));
 var import_fs = __toESM(require("fs"));
 var import_electron = require("electron");
 
+// src/lib/types.ts
+var DEFAULT_FIELD_ORDER = [
+  "title",
+  "rating",
+  "genre",
+  "cast",
+  "release_year",
+  "release_date",
+  "custom_field_1",
+  "custom_field_2",
+  "custom_field_3"
+];
+
 // src/lib/utils.ts
 function getSplitValues(val) {
   if (val === null || val === void 0 || val === "") {
@@ -88,7 +101,8 @@ function initDatabase() {
         custom_field_1_name: null,
         custom_field_2_name: null,
         custom_field_3_name: null,
-        key_fields: ["genre", "cast"]
+        key_fields: ["genre", "cast"],
+        field_order: DEFAULT_FIELD_ORDER
       },
       movies: [],
       keyRatings: {},
@@ -113,7 +127,8 @@ function saveAppSettings(input) {
     ...jsonDb.settings,
     ...input,
     is_initialized: input.is_initialized !== void 0 ? input.is_initialized : jsonDb.settings.is_initialized,
-    key_fields: input.key_fields || jsonDb.settings.key_fields
+    key_fields: input.key_fields || jsonDb.settings.key_fields,
+    field_order: input.field_order || jsonDb.settings.field_order || DEFAULT_FIELD_ORDER
   };
   saveDatabase();
   return jsonDb.settings;
@@ -344,7 +359,8 @@ function resetAllData() {
       custom_field_1_name: null,
       custom_field_2_name: null,
       custom_field_3_name: null,
-      key_fields: ["genre"]
+      key_fields: ["genre"],
+      field_order: DEFAULT_FIELD_ORDER
     },
     movies: [],
     keyRatings: {},

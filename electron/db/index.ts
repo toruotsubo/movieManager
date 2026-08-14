@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
-import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput, UpdateKeyItemInput } from '../../src/lib/types';
+import { AppSettings, Movie, KeyItemGroup, CreateMovieInput, UpdateMovieInput, UpdateKeyItemInput, DEFAULT_FIELD_ORDER } from '../../src/lib/types';
 import { getSplitValues, getKanaForCast } from '../../src/lib/utils';
 
 interface JsonDatabaseSchema {
@@ -41,6 +41,7 @@ export function initDatabase() {
         custom_field_2_name: null,
         custom_field_3_name: null,
         key_fields: ['genre', 'cast'],
+        field_order: DEFAULT_FIELD_ORDER,
       },
       movies: [],
       keyRatings: {},
@@ -70,6 +71,7 @@ export function saveAppSettings(input: {
   custom_field_2_name?: string | null;
   custom_field_3_name?: string | null;
   key_fields?: string[];
+  field_order?: string[];
 }): AppSettings {
   if (!jsonDb) initDatabase();
   jsonDb!.settings = {
@@ -77,6 +79,7 @@ export function saveAppSettings(input: {
     ...input,
     is_initialized: input.is_initialized !== undefined ? input.is_initialized : jsonDb!.settings.is_initialized,
     key_fields: input.key_fields || jsonDb!.settings.key_fields,
+    field_order: input.field_order || jsonDb!.settings.field_order || DEFAULT_FIELD_ORDER,
   };
   saveDatabase();
   return jsonDb!.settings;
@@ -351,6 +354,7 @@ export function resetAllData(): AppSettings {
       custom_field_2_name: null,
       custom_field_3_name: null,
       key_fields: ['genre'],
+      field_order: DEFAULT_FIELD_ORDER,
     },
     movies: [],
     keyRatings: {},
