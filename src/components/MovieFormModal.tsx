@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Camera,
   Save,
-  ArrowLeft,
   Film,
   X,
   AlertTriangle,
@@ -296,12 +295,6 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60 bg-slate-900/60">
           <div className="flex items-center gap-3">
-            <button
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
             <h2 className="text-lg font-bold text-white">{movie?.id ? '動画データ編集' : '新規動画追加'}</h2>
           </div>
           <button
@@ -493,6 +486,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Title */}
             <div className="md:col-span-2">
               <label className="text-xs text-slate-400 mb-1 block">タイトル</label>
               <input
@@ -504,6 +498,13 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               />
             </div>
 
+            {/* Rating (Moved under Title) */}
+            <div className="md:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+              <span className="text-sm text-slate-300 font-medium">評価 (5段階)</span>
+              <RatingStars rating={rating} onChange={setRating} size="lg" />
+            </div>
+
+            {/* Category */}
             <div>
               <label className="text-xs text-slate-400 mb-1 block">カテゴリ</label>
               <input
@@ -515,6 +516,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               />
             </div>
 
+            {/* Cast */}
             <div>
               <label className="text-xs text-slate-400 mb-1 block">主演</label>
               <input
@@ -526,6 +528,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               />
             </div>
 
+            {/* Cast Kana */}
             <div>
               <label className="text-xs text-slate-400 mb-1 block">主演（ふりがな）</label>
               <input
@@ -537,6 +540,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               />
             </div>
 
+            {/* Release Year */}
             <div>
               <label className="text-xs text-slate-400 mb-1 block">公開年 (西暦)</label>
               <input
@@ -548,6 +552,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               />
             </div>
 
+            {/* Release Date */}
             <div>
               <label className="text-xs text-slate-400 mb-1 block">公開月日 (MM-DD)</label>
               <input
@@ -559,7 +564,70 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               />
             </div>
 
-            {/* Grouping Option */}
+            {/* Custom Field 1 */}
+            {settings?.custom_field_1_name && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_1_name}</label>
+                <input
+                  type="text"
+                  value={custom1}
+                  onChange={(e) => setCustom1(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {/* Custom Field 2 */}
+            {settings?.custom_field_2_name && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_2_name}</label>
+                <input
+                  type="text"
+                  value={custom2}
+                  onChange={(e) => setCustom2(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {/* Custom Field 3 */}
+            {settings?.custom_field_3_name && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_3_name}</label>
+                <input
+                  type="text"
+                  value={custom3}
+                  onChange={(e) => setCustom3(e.target.value)}
+                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {/* Comment */}
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 mb-1 block">コメント</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                placeholder="動画に関するメモやコメント"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {/* Tags (Moved under Comment) */}
+            <div className="md:col-span-2">
+              <label className="text-xs text-slate-400 mb-1 block">タグ</label>
+              <input
+                type="text"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="例: 4K, お気に入り, 名作 (カンマ区切り)"
+                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            {/* Grouping Option (Moved under Tag) */}
             <div className="md:col-span-2 flex items-center justify-between p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
               <div className="space-y-0.5">
                 <span className="text-sm font-semibold text-slate-200 block">グループ化</span>
@@ -578,84 +646,12 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 {isGrouped ? 'ON' : 'OFF'}
               </button>
             </div>
-
-            <div className="md:col-span-2 flex items-center justify-between p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-sm text-slate-300 font-medium">評価 (5段階)</span>
-              <RatingStars rating={rating} onChange={setRating} size="lg" />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 mb-1 block">タグ</label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="例: 4K, お気に入り, 名作 (カンマ区切り)"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            {settings?.custom_field_1_name && (
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_1_name}</label>
-                <input
-                  type="text"
-                  value={custom1}
-                  onChange={(e) => setCustom1(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            )}
-
-            {settings?.custom_field_2_name && (
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_2_name}</label>
-                <input
-                  type="text"
-                  value={custom2}
-                  onChange={(e) => setCustom2(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            )}
-
-            {settings?.custom_field_3_name && (
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">{settings.custom_field_3_name}</label>
-                <input
-                  type="text"
-                  value={custom3}
-                  onChange={(e) => setCustom3(e.target.value)}
-                  className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            )}
-
-            <div className="md:col-span-2">
-              <label className="text-xs text-slate-400 mb-1 block">コメント</label>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={3}
-                placeholder="動画に関するメモやコメント"
-                className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/60 bg-slate-900/60">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-700 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>戻る</span>
-            </button>
-
+          <div>
             {movie?.id && (
               <button
                 type="button"
@@ -669,15 +665,25 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
             )}
           </div>
 
-          <button
-            type="button"
-            disabled={isCapturing}
-            onClick={handleSave}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            <span>{isCapturing ? '保存中...' : '保存'}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-xl border border-slate-700 text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+            >
+              キャンセル
+            </button>
+
+            <button
+              type="button"
+              disabled={isCapturing}
+              onClick={handleSave}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span>{isCapturing ? '保存中...' : '保存'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -83,9 +83,8 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-              {keyLabel}編集
+            <h2 className="text-lg font-bold text-white">
+              {titleString}
             </h2>
           </div>
           <button
@@ -98,15 +97,6 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Key Value Display */}
-          <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-1">
-            <span className="font-semibold text-slate-400 block uppercase tracking-wider text-[10px]">
-              対象
-            </span>
-            <div className="text-sm font-bold text-blue-400">
-              {titleString}
-            </div>
-          </div>
 
           {/* Rating Field (Key Item Specific) */}
           <div className="space-y-1.5">

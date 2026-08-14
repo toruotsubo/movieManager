@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Film, LayoutGrid, List, Settings, UploadCloud } from 'lucide-react';
+import { LayoutGrid, List, Settings, UploadCloud } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useApp } from './AppProvider';
 import { ALL_BASE_FIELDS } from '@/lib/types';
@@ -36,17 +36,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSettings }) => {
   return (
     <header className="sticky top-0 z-40 w-full glass-card border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-lg shadow-blue-500/30">
-            <Film className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              Movie Manager
-            </h1>
-          </div>
-        </div>
 
         {/* Navigation Links */}
         <nav className="flex items-center gap-2 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800/80">

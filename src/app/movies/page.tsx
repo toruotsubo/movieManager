@@ -7,7 +7,6 @@ import { formatMediaUrl, getSplitValues, formatReleaseDate } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ALL_BASE_FIELDS, AppSettings, Movie } from '@/lib/types';
 import {
-  List,
   Play,
   ArrowUpDown,
   Star,
@@ -107,7 +106,7 @@ function MoviesContent() {
         }
         return String(val);
       });
-      return `${formattedVals.join(' / ')}動画一覧`;
+      return formattedVals.join(' / ');
     }
     return '動画一覧';
   }, [filterValues]);
@@ -263,19 +262,19 @@ function MoviesContent() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <List className="w-7 h-7 text-blue-400" />
-            <span>{pageTitle}</span>
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {sortedMovies.length} 本
-          </p>
-        </div>
+      <div className="space-y-4 pb-4 border-b border-slate-800">
+        {/* Title Row */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              <span>{pageTitle}</span>
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              {sortedMovies.length} 本
+            </p>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Key Item Filter Indicator / Clear Button */}
+          {/* Key Item Filter Indicator / Clear Button (Right-aligned in Title Row) */}
           {filterSignature && (
             <button
               onClick={() => router.push('/movies')}
@@ -286,7 +285,10 @@ function MoviesContent() {
               <X className="w-3.5 h-3.5" />
             </button>
           )}
+        </div>
 
+        {/* Filter & Sort Controls Row (Right-aligned) */}
+        <div className="flex flex-wrap items-center justify-end gap-4">
           {/* Tag Filter Controls */}
           {availableTags.length > 0 && (
             <div className="flex items-center gap-2">

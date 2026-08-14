@@ -341,7 +341,19 @@ function MovieDetailContent() {
             </div>
           )}
 
-          {/* Tags */}
+          {/* Comment */}
+          <div className="md:col-span-2 space-y-1">
+            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5" /> コメント
+            </span>
+            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 min-h-[80px]">
+              <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                {movie.comment || '-'}
+              </p>
+            </div>
+          </div>
+
+          {/* Tags (Moved under Comment) */}
           {movie.tags && (
             <div className="md:col-span-2 space-y-1.5">
               <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
@@ -359,18 +371,6 @@ function MovieDetailContent() {
               </div>
             </div>
           )}
-
-          {/* Comment */}
-          <div className="md:col-span-2 space-y-1">
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <MessageSquare className="w-3.5 h-3.5" /> コメント
-            </span>
-            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 min-h-[80px]">
-              <p className="text-sm text-slate-300 whitespace-pre-wrap">
-                {movie.comment || '-'}
-              </p>
-            </div>
-          </div>
 
           {/* File Path */}
           <div className="md:col-span-2 space-y-1">

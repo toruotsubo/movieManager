@@ -5,7 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { RatingStars } from '@/components/RatingStars';
 import { formatMediaUrl } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { ArrowUpDown, Film, LayoutGrid, Star, Edit, Tag, FileText, X } from 'lucide-react';
+import { ArrowUpDown, Film, Star, Edit, Tag, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { KeyItemGroup, ALL_BASE_FIELDS, AppSettings } from '@/lib/types';
 
@@ -114,17 +114,11 @@ export default function KeyItemsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Title & Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <LayoutGrid className="w-7 h-7 text-blue-400" />
-            <span>{keyLabel}一覧</span>
-          </h1>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4">
+    <>
+      <div className="space-y-6">
+        {/* Controls */}
+      <div className="flex items-center justify-end gap-4 pb-4 border-b border-slate-800">
+        <div className="flex flex-wrap items-center justify-end gap-4">
           {/* Tag Filter Controls */}
           {availableTags.length > 0 && (
             <div className="flex items-center gap-2">
@@ -194,7 +188,7 @@ export default function KeyItemsPage() {
             onClick={() => setIsTextListModalOpen(true)}
             className="flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border-blue-500/40 transition-colors cursor-pointer"
           >
-            <span>テキスト一覧</span>
+            <span>テキスト表示</span>
           </button>
         </div>
       </div>
@@ -315,19 +309,14 @@ export default function KeyItemsPage() {
         })}
       </div>
 
+      </div>
+
       {/* Text List Modal */}
       {isTextListModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl">
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
-              <div className="flex items-center gap-2.5">
-                <FileText className="w-5 h-5 text-blue-400" />
-                <h2 className="text-lg font-bold text-white">{keyLabel} テキスト一覧</h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">
-                  {sortedGroups.length} 件
-                </span>
-              </div>
+            <div className="p-3 sm:p-4 border-b border-slate-800 flex justify-end bg-slate-900/90">
               <button
                 onClick={() => setIsTextListModalOpen(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
@@ -362,19 +351,9 @@ export default function KeyItemsPage() {
                 </div>
               )}
             </div>
-
-            {/* Modal Footer */}
-            <div className="p-3 border-t border-slate-800 bg-slate-900/90 flex justify-end">
-              <button
-                onClick={() => setIsTextListModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
-              >
-                閉じる
-              </button>
-            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
