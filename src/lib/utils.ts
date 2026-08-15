@@ -91,7 +91,7 @@ export function getKanaForCast(
     if (idx < kanaSplits.length) {
       return kanaSplits[idx];
     } else {
-      // 主演の数に主演ふりがなが足りないときは、直前のふりがな（末尾のふりがな）を使う
+      // 登場の数に登場ふりがなが足りないときは、直前のふりがな（末尾のふりがな）を使う
       return kanaSplits[kanaSplits.length - 1];
     }
   }

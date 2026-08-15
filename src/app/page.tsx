@@ -68,8 +68,23 @@ export default function KeyItemsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500" />
+      <div className="space-y-6">
+        <div className="h-10 w-full bg-slate-900/50 rounded-xl animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="glass-card rounded-xl overflow-hidden border border-slate-800 p-6 space-y-4">
+              <div className="aspect-video w-full bg-slate-900 rounded-lg animate-pulse" />
+              <div className="space-y-2">
+                <div className="h-6 w-3/4 bg-slate-900 rounded animate-pulse" />
+                <div className="h-4 w-1/2 bg-slate-900 rounded animate-pulse" />
+              </div>
+              <div className="pt-4 border-t border-slate-800 flex justify-between">
+                <div className="h-6 w-24 bg-slate-900 rounded animate-pulse" />
+                <div className="h-6 w-16 bg-slate-900 rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -121,223 +136,223 @@ export default function KeyItemsPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Controls */}
-      <div className="flex items-center justify-end gap-4 pb-4 border-b border-slate-800">
-        <div className="flex flex-wrap items-center justify-end gap-4">
-          {/* Tag Filter Controls */}
-          {availableTags.length > 0 && (
+        {/* Controls Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Tag Filter Controls */}
+            {availableTags.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_tag')}
+                </span>
+                <select
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  className="px-3 py-2 rounded-xl text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-slate-700"
+                >
+                  <option value="all">{t('all')}</option>
+                  {availableTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Rating Filter Controls */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_tag')}
+              <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_rating')}
               </span>
               <select
-                value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                value={ratingFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'all' || val === 'gte4' || val === 'gte3') {
+                    setRatingFilter(val);
+                  } else {
+                    setRatingFilter(Number(val));
+                  }
+                }}
+                className="px-3 py-2 rounded-xl text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:border-slate-700"
               >
                 <option value="all">{t('all')}</option>
-                {availableTags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag}
+                {[5, 4, 3, 2, 1].map((r) => (
+                  <option key={r} value={r}>
+                    ★{r}
                   </option>
                 ))}
+                <hr className="border-slate-800 my-1" />
+                <option value="gte4">{t('movies_list_rating_gte4')}</option>
+                <option value="gte3">{t('movies_list_rating_gte3')}</option>
               </select>
             </div>
-          )}
 
-          {/* Rating Filter Controls */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-slate-400" /> {t('movies_list_filter_rating')}
-            </span>
-            <select
-              value={ratingFilter}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'all' || val === 'gte4' || val === 'gte3') {
-                  setRatingFilter(val);
-                } else {
-                  setRatingFilter(Number(val));
-                }
-              }}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 focus:outline-none focus:border-blue-500 transition-colors cursor-pointer"
-            >
-              <option value="all">{t('all')}</option>
-              {[5, 4, 3, 2, 1].map((r) => (
-                <option key={r} value={r}>
-                  ★{r}
-                </option>
-              ))}
-              <hr className="border-slate-800 my-1" />
-              <option value="gte4">{t('movies_list_rating_gte4')}</option>
-              <option value="gte3">{t('movies_list_rating_gte3')}</option>
-            </select>
-          </div>
-
-          {/* Sort Bar */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              <ArrowUpDown className="w-3.5 h-3.5" /> {t('key_list_sort_label')}
-            </span>
-            <button
-              onClick={toggleSort}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:border-slate-700 transition-colors"
-            >
-              <span>{keyLabel}</span>
-              <ArrowUpDown className="w-3 h-3 text-blue-400" />
-            </button>
+            {/* Sort Bar */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                <ArrowUpDown className="w-3.5 h-3.5" /> {t('key_list_sort_label')}
+              </span>
+              <button
+                onClick={toggleSort}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:border-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all cursor-pointer"
+              >
+                <span>{keyLabel}</span>
+                <ArrowUpDown className="w-3 h-3 text-blue-400" />
+              </button>
+            </div>
           </div>
 
           {/* Text List Button */}
           <button
             onClick={() => setIsTextListModalOpen(true)}
-            className="flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border-blue-500/40 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border border-blue-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-all cursor-pointer"
           >
             <span>{t('key_list_text_display')}</span>
           </button>
         </div>
-      </div>
 
-      {/* Empty State */}
-      {sortedGroups.length === 0 && (
-        <div className="glass-card rounded-2xl p-12 text-center border border-slate-800 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-slate-800/80 flex items-center justify-center mx-auto text-slate-500">
-            <Film className="w-8 h-8" />
+        {/* Empty State */}
+        {sortedGroups.length === 0 && (
+          <div className="glass-card rounded-xl p-8 sm:p-12 text-center border border-slate-800 space-y-4 shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-slate-800/80 flex items-center justify-center mx-auto text-slate-400 border border-slate-700/50">
+              <Film className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-200 tracking-tight">{t('key_list_empty')}</h3>
+            <p className="text-sm text-slate-400 max-w-md mx-auto">
+              {tagFilter !== 'all' || ratingFilter !== 'all'
+                ? t('movies_list_empty_filter_desc')
+                : t('key_list_empty_desc')}
+            </p>
           </div>
-          <h3 className="text-lg font-semibold text-slate-200">{t('key_list_empty')}</h3>
-          <p className="text-sm text-slate-400 max-w-md mx-auto">
-            {tagFilter !== 'all' || ratingFilter !== 'all'
-              ? t('movies_list_empty_filter_desc')
-              : t('key_list_empty_desc')}
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Key Item Groups List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedGroups.map((group) => {
-          const imageSrc = formatMediaUrl(group.summary_image_path);
+        {/* Key Item Groups List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sortedGroups.map((group) => {
+            const imageSrc = formatMediaUrl(group.summary_image_path);
 
-          return (
-            <div
-              key={group.key_signature}
-              className="glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-slate-800"
-            >
-              {/* Summary Image (720x405 Aspect Ratio) */}
-              <div className="relative aspect-video w-full bg-slate-950 overflow-hidden">
-                {imageSrc ? (
-                  <img
-                    src={imageSrc}
-                    alt="Group Summary"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 bg-slate-900">
-                    <Film className="w-10 h-10 mb-1 opacity-40" />
-                    <span className="text-xs">NO IMAGE</span>
-                  </div>
-                )}
-
-                {/* Badge count */}
-                <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30">
-                  {t('key_list_movies_count', { count: group.movie_count })}
-                </div>
-              </div>
-
-              {/* Group Metadata & Rating */}
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    {Object.values(group.key_values).map((val, idx) => (
-                      <div key={idx} className="text-lg font-bold text-white line-clamp-1">
-                        {val}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Key Item Tags Display */}
-                  {group.tags && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      {group.tags.split(',').map((t, idx) => {
-                        const trimmedTag = t.trim();
-                        if (!trimmedTag) return null;
-                        const isSelected = tagFilter === trimmedTag;
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => setTagFilter(isSelected ? 'all' : trimmedTag)}
-                            className={clsx(
-                              'px-2 py-0.5 rounded-md border text-[11px] font-medium transition-colors cursor-pointer',
-                              isSelected
-                                ? 'bg-blue-600 text-white border-blue-500 font-semibold shadow-sm'
-                                : 'bg-blue-600/20 border-blue-500/30 text-blue-300 hover:bg-blue-600/30'
-                            )}
-                          >
-                            {trimmedTag}
-                          </button>
-                        );
-                      })}
+            return (
+              <div
+                key={group.key_signature}
+                className="glass-card glass-card-hover rounded-xl overflow-hidden flex flex-col justify-between border border-slate-800/80 transition-all shadow-sm"
+              >
+                {/* Summary Image (720x405 Aspect Ratio) */}
+                <div className="relative aspect-video w-full bg-slate-950 overflow-hidden">
+                  {imageSrc ? (
+                    <img
+                      src={imageSrc}
+                      alt="Group Summary"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-900/80 gap-1.5">
+                      <Film className="w-10 h-10 opacity-40" />
+                      <span className="text-xs font-medium tracking-wider">NO IMAGE</span>
                     </div>
                   )}
+
+                  {/* Badge count */}
+                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 shadow-sm">
+                    {t('key_list_movies_count', { count: group.movie_count })}
+                  </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <RatingStars
-                      rating={group.rating}
-                      onChange={(newRating) => updateKeyItemRating(group.key_signature, newRating)}
-                    />
+                {/* Group Metadata & Rating */}
+                <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      {Object.values(group.key_values).map((val, idx) => (
+                        <div key={idx} className="text-lg font-semibold text-slate-100 tracking-tight line-clamp-1">
+                          {val}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Key Item Tags Display */}
+                    {group.tags && (
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <Tag className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        {group.tags.split(',').map((t, idx) => {
+                          const trimmedTag = t.trim();
+                          if (!trimmedTag) return null;
+                          const isSelected = tagFilter === trimmedTag;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => setTagFilter(isSelected ? 'all' : trimmedTag)}
+                              className={clsx(
+                                'px-2.5 py-1 rounded-lg border text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer',
+                                isSelected
+                                  ? 'bg-blue-600 text-white border-blue-500 font-semibold shadow-sm'
+                                  : 'bg-blue-600/20 border-blue-500/30 text-blue-300 hover:bg-blue-600/30'
+                              )}
+                            >
+                              {trimmedTag}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openEditKeyItemModal(group)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors cursor-pointer"
-                      title={t('edit')}
-                    >
-                      <Edit className="w-3.5 h-3.5 text-blue-400" />
-                      <span>{t('edit')}</span>
-                    </button>
+                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <RatingStars
+                        rating={group.rating}
+                        onChange={(newRating) => updateKeyItemRating(group.key_signature, newRating)}
+                      />
+                    </div>
 
-                    <button
-                      onClick={() => handleRowClick(group)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors cursor-pointer"
-                    >
-                      <span>{t('movies_list_title')}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openEditKeyItemModal(group)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-slate-100 text-xs font-medium border border-slate-800 hover:border-slate-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+                        title={t('edit')}
+                      >
+                        <Edit className="w-3.5 h-3.5 text-blue-400" />
+                        <span>{t('edit')}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleRowClick(group)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+                      >
+                        <span>{t('movies_list_title')}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
+            );
+          })}
+        </div>
       </div>
 
       {/* Text List Modal */}
       {isTextListModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] shadow-2xl">
             {/* Modal Header */}
-            <div className="p-3 sm:p-4 border-b border-slate-800 flex justify-end bg-slate-900/90">
+            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+              <h3 className="text-base font-semibold text-slate-100">{t('key_list_text_display')}</h3>
               <button
                 onClick={() => setIsTextListModalOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body / Tag Cloud Items */}
-            <div className="p-5 overflow-y-auto flex-1 max-h-[60vh]">
+            <div className="p-6 overflow-y-auto flex-1 max-h-[60vh]">
               {sortedGroups.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-sm">
+                <div className="text-center py-8 text-slate-400 text-sm">
                   {t('key_list_empty')}
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-2.5">
+                <div className="flex flex-wrap gap-3">
                   {sortedGroups.map((group) => {
                     const keyText = Object.values(group.key_values).join(' / ');
                     return (
@@ -347,7 +362,7 @@ export default function KeyItemsPage() {
                           setIsTextListModalOpen(false);
                           handleRowClick(group);
                         }}
-                        className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700/70 hover:border-blue-500 transition-all cursor-pointer shadow-sm hover:shadow-blue-500/20 active:scale-95"
+                        className="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-800/80 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700/70 hover:border-blue-500 transition-all cursor-pointer shadow-sm hover:shadow-blue-500/20 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
                         {keyText}
                       </button>

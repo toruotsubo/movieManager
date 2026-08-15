@@ -33,12 +33,12 @@ interface MovieFormModalProps {
 export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   isOpen,
   movie,
-  settings,
+  settings: propSettings,
   onSave,
   onDelete,
   onClose,
 }) => {
-  const { showKana, t } = useApp();
+  const { showKana, t, settings } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -125,16 +125,16 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
     const keyFields = settings?.key_fields || ['genre'];
     const labels: string[] = [];
     for (const kf of keyFields) {
-      if (kf === 'title') labels.push('タイトル');
-      else if (kf === 'genre') labels.push('カテゴリ');
-      else if (kf === 'cast') labels.push('主演');
-      else if (kf === 'release_year') labels.push('公開年');
-      else if (kf === 'release_date') labels.push('公開月日');
-      else if (kf === 'rating') labels.push('評価');
-      else if (kf === 'custom_field_1') labels.push(settings?.custom_field_1_name || 'ユーザー定義項目1');
-      else if (kf === 'custom_field_2') labels.push(settings?.custom_field_2_name || 'ユーザー定義項目2');
-      else if (kf === 'custom_field_3') labels.push(settings?.custom_field_3_name || 'ユーザー定義項目3');
-      else labels.push('キー項目');
+      if (kf === 'title') labels.push(t('field_title'));
+      else if (kf === 'genre') labels.push(t('field_genre'));
+      else if (kf === 'cast') labels.push(t('field_cast'));
+      else if (kf === 'release_year') labels.push(t('field_release_year'));
+      else if (kf === 'release_date') labels.push(t('field_release_date'));
+      else if (kf === 'rating') labels.push(t('field_rating'));
+      else if (kf === 'custom_field_1') labels.push(settings?.custom_field_1_name || t('field_custom_1_default'));
+      else if (kf === 'custom_field_2') labels.push(settings?.custom_field_2_name || t('field_custom_2_default'));
+      else if (kf === 'custom_field_3') labels.push(settings?.custom_field_3_name || t('field_custom_3_default'));
+      else labels.push(t('field_title'));
     }
     return labels.join(' / ');
   };
@@ -649,8 +649,8 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                 type="button"
                 onClick={handleToggleGrouping}
                 className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${isGrouped
-                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                  ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
                   }`}
               >
                 {isGrouped ? t('on') : t('off')}

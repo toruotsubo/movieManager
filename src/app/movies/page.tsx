@@ -490,7 +490,7 @@ function MoviesContent() {
                                           handleKeyItemClick('cast', cVal);
                                         }}
                                         className="text-blue-400 hover:underline font-semibold cursor-pointer"
-                                        title={`主演「${cVal}」で絞り込み`}
+                                        title={`登場「${cVal}」で絞り込み`}
                                       >
                                         {cVal}
                                       </button>
