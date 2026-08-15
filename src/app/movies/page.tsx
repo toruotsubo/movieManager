@@ -374,11 +374,11 @@ function MoviesContent() {
           <div className="w-16 h-16 rounded-full bg-slate-800/80 flex items-center justify-center mx-auto text-slate-500">
             <Film className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-semibold text-slate-200">動画がありません</h3>
+          <h3 className="text-lg font-semibold text-slate-200">{t('movies_list_empty')}</h3>
           <p className="text-sm text-slate-400 max-w-md mx-auto">
             {tagFilter !== 'all' || ratingFilter !== 'all' || filterSignature
-              ? '絞り込み条件を変更して再度ご確認ください。'
-              : '画面上に動画ファイルをドロップして追加してください。'}
+              ? t('movies_list_empty_filter_desc')
+              : t('movies_list_empty_desc')}
           </p>
         </div>
       )}

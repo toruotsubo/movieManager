@@ -22,7 +22,11 @@
     "files": [
       "dist-electron/**/*",
       "out/**/*"
-    ]
+    ],
+    "icon": "build/icon.png",
+    "win": {
+      "icon": "build/icon.ico"
+    }
   },
   "dependencies": {
     "clsx": "^2.1.1",

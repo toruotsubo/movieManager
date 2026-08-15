@@ -50,12 +50,16 @@ const isDev = !app.isPackaged && process.env.NODE_ENV !== 'production';
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '../build/icon.png');
+  const winIcon = fs.existsSync(iconPath) ? iconPath : undefined;
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 700,
     title: 'Movie Manager',
+    icon: winIcon,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AppSettings, ALL_BASE_FIELDS, DEFAULT_FIELD_ORDER } from '../lib/types';
-import { Settings, Check, Radio, Circle, RotateCcw, GripVertical, Lock, Globe } from 'lucide-react';
+import { Settings, Check, Radio, Circle, RotateCcw, GripVertical, Lock } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useApp } from './AppProvider';
 import { LanguageSetting } from '../lib/translations';
@@ -195,7 +195,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 type="text"
                 value={custom1}
                 onChange={(e) => setCustom1(e.target.value)}
-                placeholder="例: 監督"
+                placeholder={t('settings_custom_item1_placeholder')}
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -205,7 +205,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 type="text"
                 value={custom2}
                 onChange={(e) => setCustom2(e.target.value)}
-                placeholder="例: シリーズ"
+                placeholder={t('settings_custom_item2_placeholder')}
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -215,7 +215,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
                 type="text"
                 value={custom3}
                 onChange={(e) => setCustom3(e.target.value)}
-                placeholder="例: タグ"
+                placeholder={t('settings_custom_item3_placeholder')}
                 className="w-full bg-slate-900/80 border border-slate-700/70 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -333,13 +333,9 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
 
         {/* Section 3: Language Selection */}
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400 flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            <span>{t('settings_section3')}</span>
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-400">
+            {t('settings_section3')}
           </h3>
-          <p className="text-xs text-slate-400">
-            {t('settings_section3_desc')}
-          </p>
 
           <div className="grid grid-cols-3 gap-3">
             {[

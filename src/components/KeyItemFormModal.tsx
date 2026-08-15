@@ -56,6 +56,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
   if (!isOpen || !group) return null;
 
   const keyFieldId = settings?.key_fields && settings.key_fields.length > 0 ? settings.key_fields[0] : 'genre';
+  const isCastKey = Boolean(settings?.key_fields?.includes('cast') || (group?.key_values && 'cast' in group.key_values));
   const keyLabel = getKeyFieldLabel(keyFieldId, settings);
   const titleString = Object.values(group.key_values).join(' / ');
 
@@ -112,8 +113,8 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
             </div>
           </div>
 
-          {/* Cast Kana Field (Only shown in Japanese) */}
-          {showKana && (
+          {/* Cast Kana Field (Only shown in Japanese when key field is 'cast') */}
+          {showKana && isCastKey && (
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-300 block">
                 {t('key_modal_cast_kana_label')}

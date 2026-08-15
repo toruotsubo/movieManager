@@ -3,8 +3,11 @@ import './globals.css';
 import { AppProvider } from '@/components/AppProvider';
 
 export const metadata: Metadata = {
-  title: 'Movie Manager - 動画管理アプリ',
+  title: 'Movie Manager',
   description: 'Electron + Next.js による動画管理デスクトップアプリケーション',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 export default function RootLayout({

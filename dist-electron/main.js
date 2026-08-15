@@ -783,12 +783,15 @@ import_electron2.protocol.registerSchemesAsPrivileged([
 var isDev = !import_electron2.app.isPackaged && process.env.NODE_ENV !== "production";
 var mainWindow = null;
 function createWindow() {
+  const iconPath = import_path3.default.join(__dirname, "../build/icon.png");
+  const winIcon = import_fs3.default.existsSync(iconPath) ? iconPath : void 0;
   mainWindow = new import_electron2.BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 700,
     title: "Movie Manager",
+    icon: winIcon,
     autoHideMenuBar: true,
     webPreferences: {
       preload: import_path3.default.join(__dirname, "preload.js"),
