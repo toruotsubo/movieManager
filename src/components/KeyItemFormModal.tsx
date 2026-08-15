@@ -14,15 +14,20 @@ interface KeyItemFormModalProps {
   onClose: () => void;
 }
 
-const getKeyFieldLabel = (keyId: string, settings: AppSettings | null): string => {
+const getKeyFieldLabel = (keyId: string, settings: AppSettings | null, tFunc?: (k: any) => string): string => {
+  if (keyId === 'title') return tFunc ? tFunc('field_title') : 'タイトル';
+  if (keyId === 'genre') return tFunc ? tFunc('field_genre') : 'カテゴリ';
+  if (keyId === 'cast') return tFunc ? tFunc('field_cast') : '登場';
+  if (keyId === 'release_year') return tFunc ? tFunc('field_release_year') : '公開年';
+  if (keyId === 'release_date') return tFunc ? tFunc('field_release_date') : '公開月日';
+  if (keyId === 'rating') return tFunc ? tFunc('field_rating') : '評価';
+
+  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || (tFunc ? tFunc('field_custom_1_default') : 'ユーザー定義項目1');
+  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || (tFunc ? tFunc('field_custom_2_default') : 'ユーザー定義項目2');
+  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || (tFunc ? tFunc('field_custom_3_default') : 'ユーザー定義項目3');
+
   const base = ALL_BASE_FIELDS.find((f) => f.id === keyId);
-  if (base) return base.label;
-
-  if (keyId === 'custom_field_1') return settings?.custom_field_1_name || 'ユーザー定義項目1';
-  if (keyId === 'custom_field_2') return settings?.custom_field_2_name || 'ユーザー定義項目2';
-  if (keyId === 'custom_field_3') return settings?.custom_field_3_name || 'ユーザー定義項目3';
-
-  return 'キー項目';
+  return base ? base.label : 'キー項目';
 };
 
 export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
@@ -57,7 +62,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
 
   const keyFieldId = settings?.key_fields && settings.key_fields.length > 0 ? settings.key_fields[0] : 'genre';
   const isCastKey = Boolean(settings?.key_fields?.includes('cast') || (group?.key_values && 'cast' in group.key_values));
-  const keyLabel = getKeyFieldLabel(keyFieldId, settings);
+  const keyLabel = getKeyFieldLabel(keyFieldId, settings, t);
   const titleString = Object.values(group.key_values).join(' / ');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +107,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           {/* Rating Field (Key Item Specific) */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 block">
-              {t('key_modal_rating_label')} （{keyLabel}）
+              {t('key_modal_rating_label')} ({keyLabel})
             </label>
             <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
               <RatingStars
@@ -127,7 +132,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
               />
               <p className="text-[11px] text-slate-500">
-                ※{titleString}のすべての動画データに反映されます。
+                {t('key_modal_cast_kana_note', { title: titleString })}
               </p>
             </div>
           )}
@@ -135,7 +140,7 @@ export const KeyItemFormModal: React.FC<KeyItemFormModalProps> = ({
           {/* Tags Field (Key Item Specific) */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 block">
-              {t('key_modal_tags_label')} （{keyLabel}）
+              {t('key_modal_tags_label')} ({keyLabel})
             </label>
             <input
               type="text"

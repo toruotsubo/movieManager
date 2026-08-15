@@ -29,7 +29,7 @@ import {
 function MovieDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, refreshData, loading, showKana, t } = useApp();
+  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, refreshData, loading, showKana, t, lang: language } = useApp();
 
   const movieId = Number(searchParams.get('id'));
   const filterSignature = searchParams.get('filter');
@@ -331,7 +331,7 @@ function MovieDetailContent() {
                       <Calendar className="w-3.5 h-3.5" /> {t('field_release_full')}
                     </span>
                     <p className="text-sm font-medium text-slate-200">
-                      {formatReleaseDate(movie.release_year, movie.release_date)}
+                      {formatReleaseDate(movie.release_year, movie.release_date, language)}
                     </p>
                   </div>
                 );

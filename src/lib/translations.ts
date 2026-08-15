@@ -79,6 +79,7 @@ export const TRANSLATIONS = {
     key_modal_rating_label: '評価',
     key_modal_tags_label: 'タグ',
     key_modal_tags_placeholder: '例: お気に入り, 名作 (カンマ区切り)',
+    key_modal_cast_kana_note: '※{title}のすべての動画データに反映されます。',
 
     // Movies List Page
     movies_list_title: '動画一覧',
@@ -92,6 +93,7 @@ export const TRANSLATIONS = {
     movies_list_play_tooltip: 'クリックで動画再生',
     movies_list_filter_tag: 'タグ:',
     movies_list_filter_rating: '評価:',
+    filter_by_year: '公開年「{year}年」で絞り込み',
     movies_list_rating_gte4: '★4以上',
     movies_list_rating_gte3: '★3以上',
 
@@ -211,6 +213,7 @@ export const TRANSLATIONS = {
     key_modal_rating_label: 'Rating',
     key_modal_tags_label: 'Tags',
     key_modal_tags_placeholder: 'e.g., Favorite, Masterpiece (comma separated)',
+    key_modal_cast_kana_note: '* Will be applied to all video data for {title}.',
 
     // Movies List Page
     movies_list_title: 'Video List',
@@ -224,6 +227,7 @@ export const TRANSLATIONS = {
     movies_list_play_tooltip: 'Play Video',
     movies_list_filter_tag: 'Tags:',
     movies_list_filter_rating: 'Rating:',
+    filter_by_year: 'Filter by release year "{year}"',
     movies_list_rating_gte4: '★4 and above',
     movies_list_rating_gte3: '★3 and above',
 

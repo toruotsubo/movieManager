@@ -53,25 +53,33 @@ export function getSplitValues(val: any): string[] {
   return parts.length > 0 ? parts : ['-'];
 }
 
-export function formatReleaseDate(year?: number | null, dateStr?: string | null): string {
+export function formatReleaseDate(year?: number | null, dateStr?: string | null, language: string = 'ja'): string {
   if (!year && !dateStr) return '-';
 
-  let yearPart = year ? `${year}年` : '';
-  let datePart = '';
+  const isEn = language === 'en';
+  let yearPart = '';
+  if (year) {
+    yearPart = isEn ? `${year}` : `${year}年`;
+  }
 
+  let datePart = '';
   if (dateStr) {
     const trimmed = dateStr.trim();
     const match = trimmed.match(/^(\d{1,2})[-/](\d{1,2})$/);
     if (match) {
       const month = match[1].padStart(2, '0');
       const day = match[2].padStart(2, '0');
-      datePart = `${month}月${day}日`;
+      datePart = isEn ? `${month}/${day}` : `${month}月${day}日`;
     } else {
       datePart = trimmed;
     }
   }
 
-  return `${yearPart}${datePart}` || '-';
+  if (yearPart && datePart) {
+    return isEn ? `${yearPart}-${datePart}` : `${yearPart}${datePart}`;
+  }
+
+  return yearPart || datePart || '-';
 }
 
 export function getKanaForCast(

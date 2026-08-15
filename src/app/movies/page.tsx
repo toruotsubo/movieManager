@@ -40,7 +40,7 @@ const getKeyFieldLabel = (keyId: string, settings: AppSettings | null, tFunc: (k
 };
 
 function MoviesContent() {
-  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading, t } = useApp();
+  const { movies, settings, updateMovieRating, openMoviePlayer, openEditMovieModal, loading, t, lang: language } = useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterSignature = searchParams.get('filter');
@@ -107,6 +107,9 @@ function MoviesContent() {
     if (filterValues && Object.keys(filterValues).length > 0) {
       const formattedVals = Object.entries(filterValues).map(([key, val]) => {
         if (key === 'release_year') {
+          if (language === 'en') {
+            return String(val).replace(/年$/, '');
+          }
           return String(val).endsWith('年') ? String(val) : `${val}年`;
         }
         return String(val);
@@ -114,7 +117,7 @@ function MoviesContent() {
       return t('movies_list_filtered_title', { value: formattedVals.join(' / ') });
     }
     return t('movies_list_title');
-  }, [filterValues, t]);
+  }, [filterValues, t, language]);
 
   // Extract all unique tags across movies
   const availableTags = useMemo(() => {
@@ -518,13 +521,13 @@ function MoviesContent() {
                                     handleKeyItemClick('release_year', movie.release_year!);
                                   }}
                                   className="text-blue-400 hover:underline font-semibold cursor-pointer"
-                                  title={`公開年「${movie.release_year}年」で絞り込み`}
+                                  title={t('filter_by_year', { year: movie.release_year })}
                                 >
-                                  {formatReleaseDate(movie.release_year, movie.release_date)}
+                                  {formatReleaseDate(movie.release_year, movie.release_date, language)}
                                 </button>
                               ) : (
                                 <span className="text-slate-300">
-                                  {formatReleaseDate(movie.release_year, movie.release_date)}
+                                  {formatReleaseDate(movie.release_year, movie.release_date, language)}
                                 </span>
                               )}
                             </div>
