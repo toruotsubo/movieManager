@@ -39,7 +39,7 @@ export function formatMediaUrl(
 
 export function getSplitValues(val: any): string[] {
   if (val === null || val === undefined || val === '') {
-    return ['未設定'];
+    return ['-'];
   }
   const str = String(val);
   const parts = Array.from(
@@ -50,7 +50,7 @@ export function getSplitValues(val: any): string[] {
         .filter(Boolean)
     )
   );
-  return parts.length > 0 ? parts : ['未設定'];
+  return parts.length > 0 ? parts : ['-'];
 }
 
 export function formatReleaseDate(year?: number | null, dateStr?: string | null): string {

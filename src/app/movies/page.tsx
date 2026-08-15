@@ -239,7 +239,7 @@ function MoviesContent() {
   };
 
   const handleKeyItemClick = (fieldId: string, val: string | number) => {
-    if (!val || val === '未指定') return;
+    if (!val || val === '未指定' || val === '-') return;
     const keySigObj: Record<string, string> = { [fieldId]: String(val) };
     const filterSig = JSON.stringify(keySigObj);
     const params = new URLSearchParams();
@@ -468,7 +468,7 @@ function MoviesContent() {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-slate-300">未指定</span>
+                                <span className="text-slate-300">-</span>
                               )}
                             </div>
                           );
@@ -498,7 +498,7 @@ function MoviesContent() {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-slate-300">未指定</span>
+                                <span className="text-slate-300">-</span>
                               )}
                             </div>
                           );

@@ -49,7 +49,7 @@ var DEFAULT_FIELD_ORDER = [
 // src/lib/utils.ts
 function getSplitValues(val) {
   if (val === null || val === void 0 || val === "") {
-    return ["\u672A\u8A2D\u5B9A"];
+    return ["-"];
   }
   const str = String(val);
   const parts = Array.from(
@@ -57,7 +57,7 @@ function getSplitValues(val) {
       str.split(/[,|、|，]/).map((s) => s.trim()).filter(Boolean)
     )
   );
-  return parts.length > 0 ? parts : ["\u672A\u8A2D\u5B9A"];
+  return parts.length > 0 ? parts : ["-"];
 }
 function getKanaForCast(cast, castKana, targetCastVal) {
   if (!cast || !castKana) return null;
@@ -792,6 +792,13 @@ function createWindow() {
     minHeight: 700,
     title: "Movie Manager",
     icon: winIcon,
+    backgroundColor: "#0b0f19",
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: "#090d16",
+      symbolColor: "#94a3b8",
+      height: 36
+    },
     autoHideMenuBar: true,
     webPreferences: {
       preload: import_path3.default.join(__dirname, "preload.js"),

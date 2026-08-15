@@ -60,6 +60,13 @@ function createWindow() {
     minHeight: 700,
     title: 'Movie Manager',
     icon: winIcon,
+    backgroundColor: '#0b0f19',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#090d16',
+      symbolColor: '#94a3b8',
+      height: 36,
+    },
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

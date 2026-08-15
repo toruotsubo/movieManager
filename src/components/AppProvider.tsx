@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppSettings, Movie, KeyItemGroup } from '../lib/types';
 import { Navbar } from './Navbar';
+import { TitleBar } from './TitleBar';
 import { InitialSetupModal } from './InitialSetupModal';
 import { MovieFormModal } from './MovieFormModal';
 import { KeyItemFormModal } from './KeyItemFormModal';
@@ -286,6 +287,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }}
     >
       <DragDropWrapper onFileDrop={handleFileDrop}>
+        <TitleBar />
         <Navbar onOpenSettings={() => setIsSettingsOpen(true)} />
         <main className="max-w-7xl mx-auto px-6 py-8">{children}</main>
 
