@@ -8,7 +8,7 @@ interface RatingStarsProps {
   rating: number; // 1 - 5
   onChange?: (newRating: number) => void;
   readOnly?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export const RatingStars: React.FC<RatingStarsProps> = ({
@@ -20,6 +20,7 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
   const [hoverRating, setHoverRating] = useState<number | null>(null);
 
   const starSizes = {
+    xs: 'w-3.5 h-3.5',
     sm: 'w-4 h-4',
     md: 'w-5 h-5',
     lg: 'w-6 h-6',

@@ -42,6 +42,11 @@ export const api = {
   } | null> => ipcRenderer.invoke('movies:extractMetadata', filePath),
 
   saveSummaryImage: (base64Data: string): Promise<string> => ipcRenderer.invoke('app:saveSummaryImage', base64Data),
+  generateThumbnail: (
+    filePath: string,
+    targetTime?: number | null
+  ): Promise<{ imagePath: string; duration: number | null; targetTime: number } | null> =>
+    ipcRenderer.invoke('app:generateThumbnail', { filePath, targetTime }),
   resetData: (): Promise<AppSettings> => ipcRenderer.invoke('app:resetData'),
 };
 

@@ -418,7 +418,7 @@ function MoviesContent() {
 
                 {/* Group count badge */}
                 {groupCount > 1 && (
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 z-10">
+                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/20 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 z-10">
                     {t('movies_list_group_badge', { count: groupCount })}
                   </div>
                 )}
@@ -565,18 +565,21 @@ function MoviesContent() {
                 </div>
 
                 {/* Rating & Actions */}
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
-                  <RatingStars
-                    rating={movie.rating}
-                    onChange={(newRating) => updateMovieRating(movie.id, newRating)}
-                  />
-                  <div className="flex items-center gap-2">
+                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+                  <div className="flex items-center shrink-0">
+                    <RatingStars
+                      rating={movie.rating}
+                      size="sm"
+                      onChange={(newRating) => updateMovieRating(movie.id, newRating)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => openEditMovieModal(movie)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/80 transition-colors cursor-pointer whitespace-nowrap shrink-0"
                       title={t('edit')}
                     >
-                      <Edit className="w-3.5 h-3.5 text-blue-400" />
+                      <Edit className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                       <span>{t('edit')}</span>
                     </button>
                     <button
@@ -588,7 +591,7 @@ function MoviesContent() {
                         }
                         router.push(`/movies/detail?${params.toString()}`);
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-colors cursor-pointer whitespace-nowrap shrink-0"
                     >
                       <span>{t('movies_list_detail_btn')}</span>
                     </button>

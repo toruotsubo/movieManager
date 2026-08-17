@@ -254,7 +254,7 @@ export default function KeyItemsPage() {
                   )}
 
                   {/* Badge count */}
-                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 shadow-sm">
+                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/20 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 shadow-sm">
                     {t('key_list_movies_count', { count: group.movie_count })}
                   </div>
                 </div>
@@ -297,27 +297,28 @@ export default function KeyItemsPage() {
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <div className="flex items-center shrink-0">
                       <RatingStars
                         rating={group.rating}
+                        size="sm"
                         onChange={(newRating) => updateKeyItemRating(group.key_signature, newRating)}
                       />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => openEditKeyItemModal(group)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-slate-100 text-xs font-medium border border-slate-800 hover:border-slate-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-slate-100 text-xs font-medium border border-slate-800 hover:border-slate-700 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer whitespace-nowrap shrink-0"
                         title={t('edit')}
                       >
-                        <Edit className="w-3.5 h-3.5 text-blue-400" />
+                        <Edit className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                         <span>{t('edit')}</span>
                       </button>
 
                       <button
                         onClick={() => handleRowClick(group)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 text-xs font-medium border border-blue-500/40 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer whitespace-nowrap shrink-0"
                       >
                         <span>{t('movies_list_title')}</span>
                       </button>

@@ -5,6 +5,10 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -21,8 +25,14 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // electron/main.ts
+var main_exports = {};
+__export(main_exports, {
+  generateThumbnailWithFFmpeg: () => generateThumbnailWithFFmpeg
+});
+module.exports = __toCommonJS(main_exports);
 var import_electron2 = require("electron");
 var import_path3 = __toESM(require("path"));
 var import_fs3 = __toESM(require("fs"));
@@ -376,6 +386,7 @@ function resetAllData() {
 // electron/metadataParser.ts
 var import_fs2 = __toESM(require("fs"));
 var import_path2 = __toESM(require("path"));
+var import_child_process = require("child_process");
 function extractVideoMetadata(filePath) {
   try {
     if (!import_fs2.default.existsSync(filePath)) {
@@ -401,6 +412,17 @@ function extractVideoMetadata(filePath) {
         };
       }
     }
+    if (!meta || !meta.duration || !meta.width) {
+      const ffmpegMeta = extractMetadataWithFFmpeg(filePath);
+      if (ffmpegMeta) {
+        meta = {
+          duration: meta?.duration ?? ffmpegMeta.duration,
+          width: meta?.width ?? ffmpegMeta.width,
+          height: meta?.height ?? ffmpegMeta.height,
+          frameRate: meta?.frameRate ?? ffmpegMeta.frameRate
+        };
+      }
+    }
     return {
       file_size: fileSize,
       duration: meta?.duration ?? null,
@@ -412,6 +434,47 @@ function extractVideoMetadata(filePath) {
     console.error("Failed to extract video metadata:", err);
     return null;
   }
+}
+function extractMetadataWithFFmpeg(filePath) {
+  try {
+    let output = "";
+    try {
+      output = (0, import_child_process.execFileSync)("ffmpeg", ["-hide_banner", "-i", filePath], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout: 5e3
+      }).toString();
+    } catch (err) {
+      output = err.stderr ? err.stderr.toString() : err.output ? err.output.toString() : "";
+    }
+    if (!output) return null;
+    let duration;
+    let width;
+    let height;
+    let frameRate;
+    const durMatch = output.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+    if (durMatch) {
+      const h = parseFloat(durMatch[1]);
+      const m = parseFloat(durMatch[2]);
+      const s = parseFloat(durMatch[3]);
+      duration = Math.round((h * 3600 + m * 60 + s) * 100) / 100;
+    }
+    const streamMatch = output.match(/Stream #\d+:\d+.*?: Video:.*? (\d{2,5})x(\d{2,5})/);
+    if (streamMatch) {
+      width = parseInt(streamMatch[1], 10);
+      height = parseInt(streamMatch[2], 10);
+    }
+    const fpsMatch = output.match(/(\d+(?:\.\d+)?)\s*fps/);
+    if (fpsMatch) {
+      frameRate = Math.round(parseFloat(fpsMatch[1]) * 100) / 100;
+    }
+    if (duration || width || height) {
+      return { duration, width, height, frameRate };
+    }
+  } catch (err) {
+    console.warn("FFmpeg metadata extraction fallback failed:", err);
+  }
+  return null;
 }
 function extractMp4MetadataNative(filePath, fileSize) {
   let fd = null;
@@ -756,6 +819,7 @@ function extractAviMetadataNative(filePath) {
 }
 
 // electron/main.ts
+var import_child_process2 = require("child_process");
 import_electron2.protocol.registerSchemesAsPrivileged([
   {
     scheme: "app",
@@ -934,4 +998,57 @@ import_electron2.ipcMain.handle("app:saveSummaryImage", async (_, base64Data) =>
     console.error("Failed to save summary image:", err);
     throw new Error("\u30B5\u30DE\u30EA\u30FC\u753B\u50CF\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002");
   }
+});
+async function generateThumbnailWithFFmpeg(filePath, targetTimeInput) {
+  return new Promise((resolve) => {
+    if (!import_fs3.default.existsSync(filePath)) {
+      resolve(null);
+      return;
+    }
+    const meta = extractVideoMetadata(filePath);
+    const duration = meta?.duration || null;
+    let targetTime = targetTimeInput;
+    if (targetTime === void 0 || targetTime === null || isNaN(targetTime)) {
+      targetTime = duration && duration > 0 ? duration * 0.5 : 0;
+    }
+    const userDataPath = import_electron2.app.getPath("userData");
+    const thumbDir = import_path3.default.join(userDataPath, "thumbnails");
+    if (!import_fs3.default.existsSync(thumbDir)) {
+      import_fs3.default.mkdirSync(thumbDir, { recursive: true });
+    }
+    const filename = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
+    const fullPath = import_path3.default.join(thumbDir, filename);
+    const seekArg = targetTime > 0 ? targetTime.toFixed(2) : "0";
+    (0, import_child_process2.execFile)(
+      "ffmpeg",
+      [
+        "-y",
+        "-ss",
+        seekArg,
+        "-i",
+        filePath,
+        "-vframes",
+        "1",
+        "-vf",
+        "scale=720:405:force_original_aspect_ratio=decrease,pad=720:405:(ow-iw)/2:(oh-ih)/2",
+        fullPath
+      ],
+      { timeout: 15e3 },
+      (err) => {
+        if (!err && import_fs3.default.existsSync(fullPath)) {
+          resolve({ imagePath: fullPath, duration, targetTime });
+        } else {
+          console.error("FFmpeg thumbnail generation error:", err);
+          resolve(null);
+        }
+      }
+    );
+  });
+}
+import_electron2.ipcMain.handle("app:generateThumbnail", async (_, { filePath, targetTime }) => {
+  return generateThumbnailWithFFmpeg(filePath, targetTime);
+});
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  generateThumbnailWithFFmpeg
 });

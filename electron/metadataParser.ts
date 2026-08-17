@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 
 export interface ExtractedVideoMetadata {
   file_size: number;
@@ -10,7 +11,7 @@ export interface ExtractedVideoMetadata {
 }
 
 /**
- * Extract metadata for MP4, MOV, WebM, MKV, AVI files.
+ * Extract metadata for MP4, MOV, WebM, MKV, AVI, WMV files.
  */
 export function extractVideoMetadata(filePath: string): ExtractedVideoMetadata | null {
   try {
@@ -43,6 +44,19 @@ export function extractVideoMetadata(filePath: string): ExtractedVideoMetadata |
       }
     }
 
+    // If native parser did not return duration or resolution (e.g. WMV files), try FFmpeg fallback
+    if (!meta || !meta.duration || !meta.width) {
+      const ffmpegMeta = extractMetadataWithFFmpeg(filePath);
+      if (ffmpegMeta) {
+        meta = {
+          duration: meta?.duration ?? ffmpegMeta.duration,
+          width: meta?.width ?? ffmpegMeta.width,
+          height: meta?.height ?? ffmpegMeta.height,
+          frameRate: meta?.frameRate ?? ffmpegMeta.frameRate,
+        };
+      }
+    }
+
     return {
       file_size: fileSize,
       duration: meta?.duration ?? null,
@@ -54,6 +68,57 @@ export function extractVideoMetadata(filePath: string): ExtractedVideoMetadata |
     console.error('Failed to extract video metadata:', err);
     return null;
   }
+}
+
+/**
+ * Extract metadata via FFmpeg CLI fallback (supports WMV, ASF, FLV, MPG, TS, etc.)
+ */
+export function extractMetadataWithFFmpeg(filePath: string): { duration?: number; width?: number; height?: number; frameRate?: number } | null {
+  try {
+    let output = '';
+    try {
+      output = execFileSync('ffmpeg', ['-hide_banner', '-i', filePath], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 5000,
+      }).toString();
+    } catch (err: any) {
+      output = err.stderr ? err.stderr.toString() : (err.output ? err.output.toString() : '');
+    }
+
+    if (!output) return null;
+
+    let duration: number | undefined;
+    let width: number | undefined;
+    let height: number | undefined;
+    let frameRate: number | undefined;
+
+    const durMatch = output.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+    if (durMatch) {
+      const h = parseFloat(durMatch[1]);
+      const m = parseFloat(durMatch[2]);
+      const s = parseFloat(durMatch[3]);
+      duration = Math.round((h * 3600 + m * 60 + s) * 100) / 100;
+    }
+
+    const streamMatch = output.match(/Stream #\d+:\d+.*?: Video:.*? (\d{2,5})x(\d{2,5})/);
+    if (streamMatch) {
+      width = parseInt(streamMatch[1], 10);
+      height = parseInt(streamMatch[2], 10);
+    }
+
+    const fpsMatch = output.match(/(\d+(?:\.\d+)?)\s*fps/);
+    if (fpsMatch) {
+      frameRate = Math.round(parseFloat(fpsMatch[1]) * 100) / 100;
+    }
+
+    if (duration || width || height) {
+      return { duration, width, height, frameRate };
+    }
+  } catch (err) {
+    console.warn('FFmpeg metadata extraction fallback failed:', err);
+  }
+  return null;
 }
 
 /**

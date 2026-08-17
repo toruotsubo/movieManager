@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Movie, AppSettings, DEFAULT_FIELD_ORDER } from '../lib/types';
 import { formatMediaUrl } from '../lib/utils';
 import { RatingStars } from './RatingStars';
+import { clsx } from 'clsx';
 import {
   Play,
   Pause,
@@ -38,7 +39,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   onDelete,
   onClose,
 }) => {
-  const { showKana, t, settings } = useApp();
+  const { showKana, t, settings, openMoviePlayer } = useApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -70,7 +71,120 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const [frameRate, setFrameRate] = useState<number | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isAutoGeneratingSummary, setIsAutoGeneratingSummary] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+
+  const generateDefaultSummaryImage = (filePath: string, presetDuration?: number | null) => {
+    return new Promise<{ imagePath: string | null; targetTime: number }>(async (resolve) => {
+      if (typeof window === 'undefined') {
+        resolve({ imagePath: null, targetTime: 0 });
+        return;
+      }
+
+      // WMV/ASF などの HTML5 非対応フォーマットの場合は直接バックエンド FFmpeg で抽出
+      const ext = filePath.split('.').pop()?.toLowerCase() || '';
+      const isLegacyFormat = ['wmv', 'asf', 'mpg', 'mpeg', 'vob'].includes(ext);
+
+      if (isLegacyFormat && window.api?.generateThumbnail) {
+        try {
+          const res = await window.api.generateThumbnail(filePath, presetDuration ? presetDuration * 0.5 : null);
+          if (res) {
+            resolve({ imagePath: res.imagePath, targetTime: res.targetTime });
+            return;
+          }
+        } catch (e) {
+          console.warn('FFmpeg thumbnail fallback error:', e);
+        }
+      }
+
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.src = formatMediaUrl(filePath, false);
+      video.preload = 'metadata';
+
+      let timeoutId: NodeJS.Timeout;
+
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        video.onloadedmetadata = null;
+        video.onseeked = null;
+        video.onerror = null;
+        video.src = '';
+        video.remove();
+      };
+
+      timeoutId = setTimeout(async () => {
+        console.warn('Default summary generation timed out, trying FFmpeg fallback');
+        cleanup();
+        if (window.api?.generateThumbnail) {
+          try {
+            const res = await window.api.generateThumbnail(filePath, presetDuration ? presetDuration * 0.5 : null);
+            if (res) {
+              resolve({ imagePath: res.imagePath, targetTime: res.targetTime });
+              return;
+            }
+          } catch (e) {
+            console.error('FFmpeg fallback failed on timeout:', e);
+          }
+        }
+        resolve({ imagePath: null, targetTime: 0 });
+      }, 8000);
+
+      video.onloadedmetadata = () => {
+        const dur = (video.duration && !isNaN(video.duration) && video.duration > 0)
+          ? video.duration
+          : (presetDuration || 0);
+        const targetTime = dur > 0 ? dur * 0.5 : 0;
+
+        video.onseeked = async () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 720;
+            canvas.height = 405;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, 720, 405);
+              const dataUrl = canvas.toDataURL('image/png');
+              let savedPath = dataUrl;
+              if (window.api?.saveSummaryImage) {
+                savedPath = await window.api.saveSummaryImage(dataUrl);
+              }
+              cleanup();
+              resolve({ imagePath: savedPath, targetTime });
+              return;
+            }
+          } catch (err) {
+            console.error('Failed to capture frame in auto summary generation:', err);
+          }
+          cleanup();
+          resolve({ imagePath: null, targetTime });
+        };
+
+        if (targetTime > 0) {
+          video.currentTime = targetTime;
+        } else {
+          video.currentTime = 0.001;
+        }
+      };
+
+      video.onerror = async (err) => {
+        console.warn('HTML5 video onError fired, falling back to backend FFmpeg thumbnail generator:', err);
+        cleanup();
+        if (window.api?.generateThumbnail) {
+          try {
+            const res = await window.api.generateThumbnail(filePath, presetDuration ? presetDuration * 0.5 : null);
+            if (res) {
+              resolve({ imagePath: res.imagePath, targetTime: res.targetTime });
+              return;
+            }
+          } catch (e) {
+            console.error('FFmpeg fallback failed on video error:', e);
+          }
+        }
+        resolve({ imagePath: null, targetTime: 0 });
+      };
+    });
+  };
 
   useEffect(() => {
     if (!isOpen || !movie) {
@@ -105,6 +219,25 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
       setHeight(movie.height || null);
       setFrameRate(movie.frame_rate || null);
       setFileSize(movie.file_size || null);
+
+      // 初回登録時などサマリー画像がない場合は中間時点のスクショをデフォルト自動生成
+      if (!movie.summary_image_path && movie.file_path) {
+        setIsAutoGeneratingSummary(true);
+        generateDefaultSummaryImage(movie.file_path, movie.duration)
+          .then(({ imagePath, targetTime }) => {
+            if (imagePath) {
+              setSummaryImagePath(imagePath);
+              setCapturedTime(targetTime);
+            }
+            setIsAutoGeneratingSummary(false);
+          })
+          .catch((err) => {
+            console.error('Failed to generate auto summary image:', err);
+            setIsAutoGeneratingSummary(false);
+          });
+      } else {
+        setIsAutoGeneratingSummary(false);
+      }
 
       // 自動メタデータ抽出 (新規および不足動画)
       if (movie.file_path && window.api?.extractMetadata) {
@@ -289,6 +422,11 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
     }
   };
 
+  const ext = movie?.file_path ? movie.file_path.split('.').pop()?.toLowerCase() || '' : '';
+  const isUnsupportedPlaybackFormat = Boolean(
+    ext && ['wmv', 'asf', 'mpg', 'mpeg', 'vob', 'm2ts', 'flv'].includes(ext)
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       {/* Hidden Canvas for Capturing */}
@@ -316,10 +454,23 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
               {!isPlayingVideo ? (
                 <button
                   type="button"
-                  onClick={() => setIsPlayingVideo(true)}
-                  className="w-full h-full relative flex items-center justify-center group focus:outline-none"
+                  disabled={isUnsupportedPlaybackFormat}
+                  onClick={() => {
+                    if (!isUnsupportedPlaybackFormat) {
+                      setIsPlayingVideo(true);
+                    }
+                  }}
+                  className={clsx(
+                    "w-full h-full relative flex items-center justify-center group focus:outline-none",
+                    isUnsupportedPlaybackFormat ? "cursor-not-allowed" : "cursor-pointer"
+                  )}
                 >
-                  {imageSrc ? (
+                  {isAutoGeneratingSummary ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/90 text-slate-300 gap-3">
+                      <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm font-medium text-slate-200">{t('form_generating_summary')}</span>
+                    </div>
+                  ) : imageSrc ? (
                     <img
                       src={imageSrc}
                       alt="Summary Preview"
@@ -332,12 +483,21 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                     </div>
                   )}
 
-                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600/90 text-white font-medium shadow-lg backdrop-blur-sm">
-                      <Play className="w-5 h-5 fill-current" />
-                      <span>{t('form_play_capture_btn')}</span>
+                  {!isAutoGeneratingSummary && (
+                    <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4">
+                      {isUnsupportedPlaybackFormat ? (
+                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-slate-900/90 text-slate-300 border border-slate-700/80 font-medium text-xs shadow-lg backdrop-blur-sm">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span>{t('form_manual_capture_disabled')}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600/90 text-white font-medium shadow-lg backdrop-blur-sm">
+                          <Play className="w-5 h-5 fill-current" />
+                          <span>{t('form_play_capture_btn')}</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </button>
               ) : (
                 <div className="w-full h-full flex flex-col relative bg-black">
@@ -345,12 +505,44 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                     <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-slate-900 text-slate-300 text-center space-y-3">
                       <AlertTriangle className="w-10 h-10 text-amber-400" />
                       <p className="text-sm text-slate-200">{videoError}</p>
-                      <button
-                        onClick={() => setIsPlayingVideo(false)}
-                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-white"
-                      >
-                        {t('form_back_to_preview')}
-                      </button>
+                      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                        {movie.file_path && (
+                          <button
+                            type="button"
+                            onClick={() => openMoviePlayer(movie.file_path!)}
+                            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs text-white font-medium flex items-center gap-1.5 shadow-md"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>{t('form_open_os_player')}</span>
+                          </button>
+                        )}
+                        {movie.file_path && window.api?.generateThumbnail && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setIsAutoGeneratingSummary(true);
+                              const res = await window.api.generateThumbnail(movie.file_path!);
+                              if (res) {
+                                setSummaryImagePath(res.imagePath);
+                                setCapturedTime(res.targetTime);
+                                if (res.duration && !duration) setDuration(res.duration);
+                              }
+                              setIsAutoGeneratingSummary(false);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium flex items-center gap-1.5"
+                          >
+                            <Camera className="w-3.5 h-3.5 text-blue-400" />
+                            <span>{t('form_ffmpeg_reextract')}</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setIsPlayingVideo(false)}
+                          className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300"
+                        >
+                          {t('form_back_to_preview')}
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <video
@@ -388,7 +580,23 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                         const errorDetails = target.error
                           ? `Code: ${target.error.code}, Message: ${target.error.message}`
                           : 'Unknown video error';
-                        setVideoError(`動画ソースのロードに失敗しました (${errorDetails})。参照パス: ${movie.file_path}`);
+
+                        const ext = movie.file_path ? movie.file_path.split('.').pop()?.toLowerCase() : '';
+                        if (ext === 'wmv' || ext === 'asf' || errorDetails.includes('DEMUXER_ERROR')) {
+                          setVideoError(`${t('form_unsupported_format_notice')} (${errorDetails})`);
+                          // サマリー画像が未取得の場合はバックエンド FFmpeg で自動抽出を試みる
+                          if (!summaryImagePath && movie.file_path && window.api?.generateThumbnail) {
+                            window.api.generateThumbnail(movie.file_path).then((res) => {
+                              if (res) {
+                                setSummaryImagePath(res.imagePath);
+                                setCapturedTime(res.targetTime);
+                                if (res.duration && !duration) setDuration(res.duration);
+                              }
+                            }).catch(() => {});
+                          }
+                        } else {
+                          setVideoError(`動画ソースのロードに失敗しました (${errorDetails})。参照パス: ${movie.file_path}`);
+                        }
                       }}
                       onEnded={() => setIsPlaying(false)}
                     />

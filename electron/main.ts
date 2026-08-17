@@ -238,3 +238,64 @@ ipcMain.handle('app:saveSummaryImage', async (_, base64Data: string) => {
     throw new Error('サマリー画像の保存に失敗しました。');
   }
 });
+
+import { execFile } from 'child_process';
+
+/**
+ * Generate 720x405 summary thumbnail from video file using FFmpeg
+ */
+export async function generateThumbnailWithFFmpeg(
+  filePath: string,
+  targetTimeInput?: number | null
+): Promise<{ imagePath: string; duration: number | null; targetTime: number } | null> {
+  return new Promise((resolve) => {
+    if (!fs.existsSync(filePath)) {
+      resolve(null);
+      return;
+    }
+
+    const meta = extractVideoMetadata(filePath);
+    const duration = meta?.duration || null;
+
+    let targetTime = targetTimeInput;
+    if (targetTime === undefined || targetTime === null || isNaN(targetTime)) {
+      targetTime = duration && duration > 0 ? duration * 0.5 : 0;
+    }
+
+    const userDataPath = app.getPath('userData');
+    const thumbDir = path.join(userDataPath, 'thumbnails');
+    if (!fs.existsSync(thumbDir)) {
+      fs.mkdirSync(thumbDir, { recursive: true });
+    }
+
+    const filename = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
+    const fullPath = path.join(thumbDir, filename);
+    const seekArg = targetTime > 0 ? targetTime.toFixed(2) : '0';
+
+    execFile(
+      'ffmpeg',
+      [
+        '-y',
+        '-ss', seekArg,
+        '-i', filePath,
+        '-vframes', '1',
+        '-vf', 'scale=720:405:force_original_aspect_ratio=decrease,pad=720:405:(ow-iw)/2:(oh-ih)/2',
+        fullPath,
+      ],
+      { timeout: 15000 },
+      (err) => {
+        if (!err && fs.existsSync(fullPath)) {
+          resolve({ imagePath: fullPath, duration, targetTime });
+        } else {
+          console.error('FFmpeg thumbnail generation error:', err);
+          resolve(null);
+        }
+      }
+    );
+  });
+}
+
+// Generate thumbnail via FFmpeg IPC handler
+ipcMain.handle('app:generateThumbnail', async (_, { filePath, targetTime }: { filePath: string; targetTime?: number | null }) => {
+  return generateThumbnailWithFFmpeg(filePath, targetTime);
+});
