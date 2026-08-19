@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Movie, AppSettings, DEFAULT_FIELD_ORDER } from '../lib/types';
-import { formatMediaUrl } from '../lib/utils';
+import { formatMediaUrl, isUnsupportedInlinePlayback } from '../lib/utils';
 import { RatingStars } from './RatingStars';
 import { clsx } from 'clsx';
 import {
@@ -81,9 +81,8 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
         return;
       }
 
-      // WMV/ASF などの HTML5 非対応フォーマットの場合は直接バックエンド FFmpeg で抽出
-      const ext = filePath.split('.').pop()?.toLowerCase() || '';
-      const isLegacyFormat = ['wmv', 'asf', 'mpg', 'mpeg', 'vob'].includes(ext);
+      // HTML5 非対応フォーマットの場合は直接バックエンド FFmpeg で抽出
+      const isLegacyFormat = isUnsupportedInlinePlayback(filePath);
 
       if (isLegacyFormat && window.api?.generateThumbnail) {
         try {
@@ -406,7 +405,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
 
   const handleDelete = async () => {
     if (!movie?.id) return;
-    if (confirm('この動画を削除してもよろしいですか？')) {
+    if (confirm(t('confirmDelete'))) {
       // グループ化がONになっている場合、まずグループ化をOFFにする
       if (isGrouped || movie.is_grouped || movie.parent_movie_id) {
         await onSave({
@@ -422,10 +421,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
     }
   };
 
-  const ext = movie?.file_path ? movie.file_path.split('.').pop()?.toLowerCase() || '' : '';
-  const isUnsupportedPlaybackFormat = Boolean(
-    ext && ['wmv', 'asf', 'mpg', 'mpeg', 'vob', 'm2ts', 'flv'].includes(ext)
-  );
+  const isUnsupportedPlaybackFormat = isUnsupportedInlinePlayback(movie?.file_path);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
@@ -581,8 +577,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
                           ? `Code: ${target.error.code}, Message: ${target.error.message}`
                           : 'Unknown video error';
 
-                        const ext = movie.file_path ? movie.file_path.split('.').pop()?.toLowerCase() : '';
-                        if (ext === 'wmv' || ext === 'asf' || errorDetails.includes('DEMUXER_ERROR')) {
+                        if (isUnsupportedInlinePlayback(movie.file_path) || errorDetails.includes('DEMUXER_ERROR')) {
                           setVideoError(`${t('form_unsupported_format_notice')} (${errorDetails})`);
                           // サマリー画像が未取得の場合はバックエンド FFmpeg で自動抽出を試みる
                           if (!summaryImagePath && movie.file_path && window.api?.generateThumbnail) {

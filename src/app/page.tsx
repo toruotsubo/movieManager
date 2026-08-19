@@ -239,12 +239,15 @@ export default function KeyItemsPage() {
                 className="glass-card glass-card-hover rounded-xl overflow-hidden flex flex-col justify-between border border-slate-800/80 transition-all shadow-sm"
               >
                 {/* Summary Image (720x405 Aspect Ratio) */}
-                <div className="relative aspect-video w-full bg-slate-950 overflow-hidden">
+                <div
+                  onClick={() => handleRowClick(group)}
+                  className="relative aspect-video w-full bg-slate-950 overflow-hidden group/img cursor-pointer"
+                >
                   {imageSrc ? (
                     <img
                       src={imageSrc}
                       alt="Group Summary"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-900/80 gap-1.5">
@@ -254,7 +257,7 @@ export default function KeyItemsPage() {
                   )}
 
                   {/* Badge count */}
-                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/20 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 shadow-sm">
+                  <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-slate-950/20 backdrop-blur-md text-xs font-semibold text-blue-400 border border-blue-500/30 shadow-sm z-10">
                     {t('key_list_movies_count', { count: group.movie_count })}
                   </div>
                 </div>

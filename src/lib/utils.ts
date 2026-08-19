@@ -107,3 +107,13 @@ export function getKanaForCast(
   return null;
 }
 
+export const INLINE_PLAYBACK_EXTENSIONS = new Set(['mp4', 'm4v', 'webm', 'ogv', 'ogg']);
+
+export function isUnsupportedInlinePlayback(filePath: string | null | undefined): boolean {
+  if (!filePath) return false;
+  const ext = filePath.split('.').pop()?.toLowerCase() || '';
+  if (!ext) return false;
+  return !INLINE_PLAYBACK_EXTENSIONS.has(ext);
+}
+
+

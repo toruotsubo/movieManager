@@ -295,8 +295,8 @@ function MoviesContent() {
           )}
         </div>
 
-        {/* Filter & Sort Controls Row (Right-aligned) */}
-        <div className="flex flex-wrap items-center justify-end gap-4">
+        {/* Filter & Sort Controls Row (Left-aligned) */}
+        <div className="flex flex-wrap items-center justify-start gap-4">
           {/* Tag Filter Controls */}
           {availableTags.length > 0 && (
             <div className="flex items-center gap-2">
@@ -529,6 +529,42 @@ function MoviesContent() {
                                 <span className="text-slate-300">
                                   {formatReleaseDate(movie.release_year, movie.release_date, language)}
                                 </span>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        if (fieldId.startsWith('custom_field_')) {
+                          if (filterValues && filterValues[fieldId] !== undefined) return null;
+
+                          const num = fieldId.replace('custom_field_', '');
+                          const customName = (settings as any)?.[`custom_field_${num}_name`];
+                          if (!customName || !customName.trim()) return null;
+                          const customVal = (movie as any)[fieldId];
+
+                          return (
+                            <div key={fieldId} className="flex items-center gap-2">
+                              <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                              {customVal ? (
+                                <div className="flex flex-wrap items-center gap-1">
+                                  {getSplitValues(customVal).map((cVal, idx) => (
+                                    <React.Fragment key={idx}>
+                                      {idx > 0 && <span className="text-slate-500">,</span>}
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleKeyItemClick(fieldId, cVal);
+                                        }}
+                                        className="text-blue-400 hover:underline font-semibold cursor-pointer"
+                                        title={`${customName}「${cVal}」で絞り込み`}
+                                      >
+                                        {cVal}
+                                      </button>
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-300">-</span>
                               )}
                             </div>
                           );
