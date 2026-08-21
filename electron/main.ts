@@ -240,6 +240,7 @@ ipcMain.handle('app:saveSummaryImage', async (_, base64Data: string) => {
 });
 
 import { execFile } from 'child_process';
+import { getFFmpegPath } from './ffmpegPath';
 
 /**
  * Generate 720x405 summary thumbnail from video file using FFmpeg
@@ -273,7 +274,7 @@ export async function generateThumbnailWithFFmpeg(
     const seekArg = targetTime > 0 ? targetTime.toFixed(2) : '0';
 
     execFile(
-      'ffmpeg',
+      getFFmpegPath(),
       [
         '-y',
         '-ss', seekArg,

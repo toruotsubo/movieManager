@@ -109,10 +109,24 @@ export function getKanaForCast(
 
 export const INLINE_PLAYBACK_EXTENSIONS = new Set(['mp4', 'm4v', 'webm', 'ogv', 'ogg']);
 
+export const VIDEO_EXTENSIONS = new Set([
+  'mp4', 'm4v', 'mkv', 'avi', 'wmv', 'mov', 'flv', 'webm',
+  'mpg', 'mpeg', 'm2v', '3gp', '3g2', 'ts', 'mts', 'm2ts',
+  'vob', 'ogv', 'rm', 'rmvb', 'asf', 'divx', 'f4v'
+]);
+
+export function isVideoFile(fileNameOrPath: string | null | undefined, mimeType?: string): boolean {
+  if (mimeType && mimeType.startsWith('video/')) {
+    return true;
+  }
+  if (!fileNameOrPath) return false;
+  const ext = fileNameOrPath.split('.').pop()?.toLowerCase() || '';
+  return VIDEO_EXTENSIONS.has(ext);
+}
+
 export function isUnsupportedInlinePlayback(filePath: string | null | undefined): boolean {
   if (!filePath) return false;
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
-  if (!ext) return false;
   return !INLINE_PLAYBACK_EXTENSIONS.has(ext);
 }
 

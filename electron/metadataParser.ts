@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
+import { getFFmpegPath } from './ffmpegPath';
 
 export interface ExtractedVideoMetadata {
   file_size: number;
@@ -77,7 +78,7 @@ export function extractMetadataWithFFmpeg(filePath: string): { duration?: number
   try {
     let output = '';
     try {
-      output = execFileSync('ffmpeg', ['-hide_banner', '-i', filePath], {
+      output = execFileSync(getFFmpegPath(), ['-hide_banner', '-i', filePath], {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
         timeout: 5000,

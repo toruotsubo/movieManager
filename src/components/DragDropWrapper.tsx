@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { UploadCloud } from 'lucide-react';
 import { useApp } from './AppProvider';
+import { isVideoFile } from '@/lib/utils';
+import { ConfirmModal } from './ConfirmModal';
 
 interface DragDropWrapperProps {
   children: React.ReactNode;
@@ -11,6 +13,8 @@ interface DragDropWrapperProps {
 
 export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFileDrop }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const { t } = useApp();
 
   // Prevent default window drag and drop navigation
   useEffect(() => {
@@ -70,6 +74,12 @@ export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFi
 
       console.log('Dropped file:', file.name, 'Path:', filePath);
 
+      // Check if dropped file is a video file
+      if (!isVideoFile(filePath || file.name, file.type)) {
+        setShowInvalidModal(true);
+        return;
+      }
+
       if (filePath) {
         onFileDrop(filePath, file.name);
       } else {
@@ -77,8 +87,6 @@ export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFi
       }
     }
   };
-
-  const { t } = useApp();
 
   return (
     <div
@@ -99,6 +107,18 @@ export const DragDropWrapper: React.FC<DragDropWrapperProps> = ({ children, onFi
           <p className="text-slate-300 text-sm">{t('drag_drop_overlay_desc')}</p>
         </div>
       )}
+
+      {/* Invalid File Alert Modal */}
+      <ConfirmModal
+        isOpen={showInvalidModal}
+        title={t('drag_drop_invalid_title')}
+        description={t('drag_drop_invalid_file')}
+        confirmText="OK"
+        showCancel={false}
+        variant="warning"
+        onConfirm={() => setShowInvalidModal(false)}
+        onClose={() => setShowInvalidModal(false)}
+      />
     </div>
   );
 };

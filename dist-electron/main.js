@@ -33,9 +33,9 @@ __export(main_exports, {
   generateThumbnailWithFFmpeg: () => generateThumbnailWithFFmpeg
 });
 module.exports = __toCommonJS(main_exports);
-var import_electron2 = require("electron");
-var import_path3 = __toESM(require("path"));
-var import_fs3 = __toESM(require("fs"));
+var import_electron3 = require("electron");
+var import_path4 = __toESM(require("path"));
+var import_fs4 = __toESM(require("fs"));
 var import_url = __toESM(require("url"));
 
 // electron/db/index.ts
@@ -384,17 +384,51 @@ function resetAllData() {
 }
 
 // electron/metadataParser.ts
-var import_fs2 = __toESM(require("fs"));
-var import_path2 = __toESM(require("path"));
+var import_fs3 = __toESM(require("fs"));
+var import_path3 = __toESM(require("path"));
 var import_child_process = require("child_process");
+
+// electron/ffmpegPath.ts
+var import_path2 = __toESM(require("path"));
+var import_fs2 = __toESM(require("fs"));
+var import_electron2 = require("electron");
+function getFFmpegPath() {
+  try {
+    let binaryPath = null;
+    try {
+      const ffmpegStatic = require("ffmpeg-static");
+      binaryPath = typeof ffmpegStatic === "string" ? ffmpegStatic : ffmpegStatic?.default;
+    } catch {
+    }
+    if (binaryPath) {
+      if (import_electron2.app?.isPackaged) {
+        binaryPath = binaryPath.replace("app.asar", "app.asar.unpacked");
+      }
+      if (import_fs2.default.existsSync(binaryPath)) {
+        return binaryPath;
+      }
+    }
+    if (import_electron2.app?.isPackaged && process.resourcesPath) {
+      const fallbackPath = import_path2.default.join(process.resourcesPath, "app.asar.unpacked", "node_modules", "ffmpeg-static", "ffmpeg.exe");
+      if (import_fs2.default.existsSync(fallbackPath)) {
+        return fallbackPath;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to resolve ffmpeg-static path:", err);
+  }
+  return "ffmpeg";
+}
+
+// electron/metadataParser.ts
 function extractVideoMetadata(filePath) {
   try {
-    if (!import_fs2.default.existsSync(filePath)) {
+    if (!import_fs3.default.existsSync(filePath)) {
       return null;
     }
-    const stat = import_fs2.default.statSync(filePath);
+    const stat = import_fs3.default.statSync(filePath);
     const fileSize = stat.size;
-    const ext = import_path2.default.extname(filePath).toLowerCase();
+    const ext = import_path3.default.extname(filePath).toLowerCase();
     let meta = null;
     if (ext === ".webm" || ext === ".mkv") {
       meta = extractWebmMetadataNative(filePath, fileSize);
@@ -439,7 +473,7 @@ function extractMetadataWithFFmpeg(filePath) {
   try {
     let output = "";
     try {
-      output = (0, import_child_process.execFileSync)("ffmpeg", ["-hide_banner", "-i", filePath], {
+      output = (0, import_child_process.execFileSync)(getFFmpegPath(), ["-hide_banner", "-i", filePath], {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
         timeout: 5e3
@@ -580,20 +614,20 @@ function extractMp4MetadataNative(filePath, fileSize) {
       }
     };
     var parseBoxes = parseBoxes2, parseTrak = parseTrak2;
-    fd = import_fs2.default.openSync(filePath, "r");
+    fd = import_fs3.default.openSync(filePath, "r");
     let moovBuf = null;
     let moovStartOffset = 0;
     let pos = 0;
     const headerBuf = Buffer.alloc(16);
     while (pos + 8 <= fileSize) {
-      const bytesRead = import_fs2.default.readSync(fd, headerBuf, 0, 8, pos);
+      const bytesRead = import_fs3.default.readSync(fd, headerBuf, 0, 8, pos);
       if (bytesRead < 8) break;
       const size32 = headerBuf.readUInt32BE(0);
       const type = headerBuf.toString("ascii", 4, 8);
       let boxSize = BigInt(size32);
       let headerLen = 8;
       if (size32 === 1) {
-        const read64 = import_fs2.default.readSync(fd, headerBuf, 8, 8, pos + 8);
+        const read64 = import_fs3.default.readSync(fd, headerBuf, 8, 8, pos + 8);
         if (read64 < 8) break;
         boxSize = headerBuf.readBigUInt64BE(8);
         headerLen = 16;
@@ -604,7 +638,7 @@ function extractMp4MetadataNative(filePath, fileSize) {
         const moovLen = Number(boxSize);
         if (moovLen > 0 && moovLen <= 64 * 1024 * 1024) {
           moovBuf = Buffer.alloc(moovLen);
-          import_fs2.default.readSync(fd, moovBuf, 0, moovLen, pos);
+          import_fs3.default.readSync(fd, moovBuf, 0, moovLen, pos);
           moovStartOffset = pos;
         }
         break;
@@ -616,7 +650,7 @@ function extractMp4MetadataNative(filePath, fileSize) {
       const searchSize = Math.min(fileSize, 16 * 1024 * 1024);
       const tailBuf = Buffer.alloc(searchSize);
       const startReadPos = fileSize - searchSize;
-      import_fs2.default.readSync(fd, tailBuf, 0, searchSize, startReadPos);
+      import_fs3.default.readSync(fd, tailBuf, 0, searchSize, startReadPos);
       for (let i = tailBuf.length - 4; i >= 0; i--) {
         if (tailBuf[i] === 109 && tailBuf[i + 1] === 111 && tailBuf[i + 2] === 111 && tailBuf[i + 3] === 118) {
           if (i >= 4) {
@@ -624,7 +658,7 @@ function extractMp4MetadataNative(filePath, fileSize) {
             const absoluteMoovPos = startReadPos + (i - 4);
             if (moovSize32 > 0 && absoluteMoovPos + moovSize32 <= fileSize) {
               moovBuf = Buffer.alloc(moovSize32);
-              import_fs2.default.readSync(fd, moovBuf, 0, moovSize32, absoluteMoovPos);
+              import_fs3.default.readSync(fd, moovBuf, 0, moovSize32, absoluteMoovPos);
               moovStartOffset = absoluteMoovPos;
               break;
             }
@@ -632,7 +666,7 @@ function extractMp4MetadataNative(filePath, fileSize) {
         }
       }
     }
-    import_fs2.default.closeSync(fd);
+    import_fs3.default.closeSync(fd);
     fd = null;
     if (!moovBuf) return null;
     let mvhdTimescale = 0;
@@ -662,7 +696,7 @@ function extractMp4MetadataNative(filePath, fileSize) {
   } catch (err) {
     if (fd !== null) {
       try {
-        import_fs2.default.closeSync(fd);
+        import_fs3.default.closeSync(fd);
       } catch (e) {
       }
     }
@@ -738,11 +772,11 @@ function extractWebmMetadataNative(filePath, fileSize) {
       }
     };
     var readVint = readVint2, readElementHeader = readElementHeader2, parseEbml = parseEbml2;
-    fd = import_fs2.default.openSync(filePath, "r");
+    fd = import_fs3.default.openSync(filePath, "r");
     const readSize = Math.min(fileSize, 4 * 1024 * 1024);
     const buf = Buffer.alloc(readSize);
-    import_fs2.default.readSync(fd, buf, 0, readSize, 0);
-    import_fs2.default.closeSync(fd);
+    import_fs3.default.readSync(fd, buf, 0, readSize, 0);
+    import_fs3.default.closeSync(fd);
     fd = null;
     let defaultDurationNs;
     let width;
@@ -760,7 +794,7 @@ function extractWebmMetadataNative(filePath, fileSize) {
   } catch (err) {
     if (fd !== null) {
       try {
-        import_fs2.default.closeSync(fd);
+        import_fs3.default.closeSync(fd);
       } catch (e) {
       }
     }
@@ -770,10 +804,10 @@ function extractWebmMetadataNative(filePath, fileSize) {
 function extractAviMetadataNative(filePath) {
   let fd = null;
   try {
-    fd = import_fs2.default.openSync(filePath, "r");
+    fd = import_fs3.default.openSync(filePath, "r");
     const buf = Buffer.alloc(64 * 1024);
-    const bytesRead = import_fs2.default.readSync(fd, buf, 0, buf.length, 0);
-    import_fs2.default.closeSync(fd);
+    const bytesRead = import_fs3.default.readSync(fd, buf, 0, buf.length, 0);
+    import_fs3.default.closeSync(fd);
     fd = null;
     if (bytesRead < 56) return null;
     const riffType = buf.toString("ascii", 0, 4);
@@ -810,7 +844,7 @@ function extractAviMetadataNative(filePath) {
   } catch (err) {
     if (fd !== null) {
       try {
-        import_fs2.default.closeSync(fd);
+        import_fs3.default.closeSync(fd);
       } catch (e) {
       }
     }
@@ -820,7 +854,7 @@ function extractAviMetadataNative(filePath) {
 
 // electron/main.ts
 var import_child_process2 = require("child_process");
-import_electron2.protocol.registerSchemesAsPrivileged([
+import_electron3.protocol.registerSchemesAsPrivileged([
   {
     scheme: "app",
     privileges: {
@@ -844,12 +878,12 @@ import_electron2.protocol.registerSchemesAsPrivileged([
     }
   }
 ]);
-var isDev = !import_electron2.app.isPackaged && process.env.NODE_ENV !== "production";
+var isDev = !import_electron3.app.isPackaged && process.env.NODE_ENV !== "production";
 var mainWindow = null;
 function createWindow() {
-  const iconPath = import_path3.default.join(__dirname, "../build/icon.png");
-  const winIcon = import_fs3.default.existsSync(iconPath) ? iconPath : void 0;
-  mainWindow = new import_electron2.BrowserWindow({
+  const iconPath = import_path4.default.join(__dirname, "../build/icon.png");
+  const winIcon = import_fs4.default.existsSync(iconPath) ? iconPath : void 0;
+  mainWindow = new import_electron3.BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
@@ -865,7 +899,7 @@ function createWindow() {
     },
     autoHideMenuBar: true,
     webPreferences: {
-      preload: import_path3.default.join(__dirname, "preload.js"),
+      preload: import_path4.default.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
       webSecurity: false
@@ -880,30 +914,30 @@ function createWindow() {
   }
 }
 function registerAppProtocol() {
-  import_electron2.protocol.handle("app", (request) => {
+  import_electron3.protocol.handle("app", (request) => {
     try {
       const reqUrl = new URL(request.url);
       let pathname = decodeURIComponent(reqUrl.pathname);
-      const outDir = import_path3.default.join(__dirname, "../out");
+      const outDir = import_path4.default.join(__dirname, "../out");
       if (pathname === "/" || pathname === "") {
         pathname = "/index.html";
       }
-      let filePath = import_path3.default.join(outDir, pathname);
-      if (!import_fs3.default.existsSync(filePath)) {
-        if (import_fs3.default.existsSync(filePath + ".html")) {
+      let filePath = import_path4.default.join(outDir, pathname);
+      if (!import_fs4.default.existsSync(filePath)) {
+        if (import_fs4.default.existsSync(filePath + ".html")) {
           filePath = filePath + ".html";
-        } else if (import_fs3.default.existsSync(import_path3.default.join(filePath, "index.html"))) {
-          filePath = import_path3.default.join(filePath, "index.html");
+        } else if (import_fs4.default.existsSync(import_path4.default.join(filePath, "index.html"))) {
+          filePath = import_path4.default.join(filePath, "index.html");
         } else {
-          filePath = import_path3.default.join(outDir, "index.html");
+          filePath = import_path4.default.join(outDir, "index.html");
         }
-      } else if (import_fs3.default.statSync(filePath).isDirectory()) {
-        const indexPath = import_path3.default.join(filePath, "index.html");
-        if (import_fs3.default.existsSync(indexPath)) {
+      } else if (import_fs4.default.statSync(filePath).isDirectory()) {
+        const indexPath = import_path4.default.join(filePath, "index.html");
+        if (import_fs4.default.existsSync(indexPath)) {
           filePath = indexPath;
         }
       }
-      return import_electron2.net.fetch(import_url.default.pathToFileURL(filePath).toString());
+      return import_electron3.net.fetch(import_url.default.pathToFileURL(filePath).toString());
     } catch (error) {
       console.error("Failed to handle app protocol:", error);
       return new Response("Not Found", { status: 404 });
@@ -911,7 +945,7 @@ function registerAppProtocol() {
   });
 }
 function registerMediaProtocol() {
-  import_electron2.protocol.registerFileProtocol("media", (request, callback) => {
+  import_electron3.protocol.registerFileProtocol("media", (request, callback) => {
     try {
       let rawUrl = request.url.replace(/^media:\/\/(local\/)?/, "");
       let cleanUrl = rawUrl.split("?")[0].split("#")[0];
@@ -921,7 +955,7 @@ function registerMediaProtocol() {
           decodedPath = decodedPath.slice(1);
         }
       }
-      const normalizedPath = import_path3.default.normalize(decodedPath);
+      const normalizedPath = import_path4.default.normalize(decodedPath);
       callback({ path: normalizedPath });
     } catch (error) {
       console.error("Failed to handle media file protocol:", error);
@@ -929,50 +963,50 @@ function registerMediaProtocol() {
     }
   });
 }
-import_electron2.app.whenReady().then(() => {
-  import_electron2.Menu.setApplicationMenu(null);
+import_electron3.app.whenReady().then(() => {
+  import_electron3.Menu.setApplicationMenu(null);
   registerAppProtocol();
   registerMediaProtocol();
   initDatabase();
   createWindow();
-  import_electron2.app.on("activate", () => {
-    if (import_electron2.BrowserWindow.getAllWindows().length === 0) createWindow();
+  import_electron3.app.on("activate", () => {
+    if (import_electron3.BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
-import_electron2.app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") import_electron2.app.quit();
+import_electron3.app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") import_electron3.app.quit();
 });
-import_electron2.ipcMain.handle("settings:get", async () => getAppSettings());
-import_electron2.ipcMain.handle("settings:save", async (_, input) => saveAppSettings(input));
-import_electron2.ipcMain.handle("movies:getAll", async () => getAllMovies());
-import_electron2.ipcMain.handle("movies:getById", async (_, id) => getMovieById(id));
-import_electron2.ipcMain.handle("movies:getByPath", async (_, filePath) => getMovieByFilePath(filePath));
-import_electron2.ipcMain.handle("movies:add", async (_, movie) => addMovie(movie));
-import_electron2.ipcMain.handle("movies:update", async (_, movie) => updateMovie(movie));
-import_electron2.ipcMain.handle("movies:delete", async (_, id) => deleteMovie(id));
-import_electron2.ipcMain.handle(
+import_electron3.ipcMain.handle("settings:get", async () => getAppSettings());
+import_electron3.ipcMain.handle("settings:save", async (_, input) => saveAppSettings(input));
+import_electron3.ipcMain.handle("movies:getAll", async () => getAllMovies());
+import_electron3.ipcMain.handle("movies:getById", async (_, id) => getMovieById(id));
+import_electron3.ipcMain.handle("movies:getByPath", async (_, filePath) => getMovieByFilePath(filePath));
+import_electron3.ipcMain.handle("movies:add", async (_, movie) => addMovie(movie));
+import_electron3.ipcMain.handle("movies:update", async (_, movie) => updateMovie(movie));
+import_electron3.ipcMain.handle("movies:delete", async (_, id) => deleteMovie(id));
+import_electron3.ipcMain.handle(
   "movies:updateRating",
   async (_, { id, rating }) => updateMovieRating(id, rating)
 );
-import_electron2.ipcMain.handle("movies:extractMetadata", async (_, filePath) => {
+import_electron3.ipcMain.handle("movies:extractMetadata", async (_, filePath) => {
   return extractVideoMetadata(filePath);
 });
-import_electron2.ipcMain.handle("keyItems:getAll", async () => getKeyItemGroups());
-import_electron2.ipcMain.handle(
+import_electron3.ipcMain.handle("keyItems:getAll", async () => getKeyItemGroups());
+import_electron3.ipcMain.handle(
   "keyItems:updateRating",
   async (_, { key_signature, rating }) => updateKeyItemRating(key_signature, rating)
 );
-import_electron2.ipcMain.handle(
+import_electron3.ipcMain.handle(
   "keyItems:updateDetails",
   async (_, input) => updateKeyItemDetails(input)
 );
-import_electron2.ipcMain.handle("app:resetData", async () => resetAllData());
-import_electron2.ipcMain.handle("app:openMoviePlayer", async (_, filePath) => {
+import_electron3.ipcMain.handle("app:resetData", async () => resetAllData());
+import_electron3.ipcMain.handle("app:openMoviePlayer", async (_, filePath) => {
   try {
-    if (!import_fs3.default.existsSync(filePath)) {
+    if (!import_fs4.default.existsSync(filePath)) {
       return { success: false, error: "\u6307\u5B9A\u3055\u308C\u305F\u52D5\u753B\u30D5\u30A1\u30A4\u30EB\u304C\u5B58\u5728\u3057\u307E\u305B\u3093\u3002" };
     }
-    const errorMsg = await import_electron2.shell.openPath(filePath);
+    const errorMsg = await import_electron3.shell.openPath(filePath);
     if (errorMsg) {
       return { success: false, error: errorMsg };
     }
@@ -981,18 +1015,18 @@ import_electron2.ipcMain.handle("app:openMoviePlayer", async (_, filePath) => {
     return { success: false, error: err?.message || "\u52D5\u753B\u30D7\u30EC\u30A4\u30E4\u30FC\u306E\u8D77\u52D5\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002" };
   }
 });
-import_electron2.ipcMain.handle("app:saveSummaryImage", async (_, base64Data) => {
+import_electron3.ipcMain.handle("app:saveSummaryImage", async (_, base64Data) => {
   try {
-    const userDataPath = import_electron2.app.getPath("userData");
-    const thumbDir = import_path3.default.join(userDataPath, "thumbnails");
-    if (!import_fs3.default.existsSync(thumbDir)) {
-      import_fs3.default.mkdirSync(thumbDir, { recursive: true });
+    const userDataPath = import_electron3.app.getPath("userData");
+    const thumbDir = import_path4.default.join(userDataPath, "thumbnails");
+    if (!import_fs4.default.existsSync(thumbDir)) {
+      import_fs4.default.mkdirSync(thumbDir, { recursive: true });
     }
     const filename = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
-    const fullPath = import_path3.default.join(thumbDir, filename);
+    const fullPath = import_path4.default.join(thumbDir, filename);
     const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(cleanBase64, "base64");
-    import_fs3.default.writeFileSync(fullPath, buffer);
+    import_fs4.default.writeFileSync(fullPath, buffer);
     return fullPath;
   } catch (err) {
     console.error("Failed to save summary image:", err);
@@ -1001,7 +1035,7 @@ import_electron2.ipcMain.handle("app:saveSummaryImage", async (_, base64Data) =>
 });
 async function generateThumbnailWithFFmpeg(filePath, targetTimeInput) {
   return new Promise((resolve) => {
-    if (!import_fs3.default.existsSync(filePath)) {
+    if (!import_fs4.default.existsSync(filePath)) {
       resolve(null);
       return;
     }
@@ -1011,16 +1045,16 @@ async function generateThumbnailWithFFmpeg(filePath, targetTimeInput) {
     if (targetTime === void 0 || targetTime === null || isNaN(targetTime)) {
       targetTime = duration && duration > 0 ? duration * 0.5 : 0;
     }
-    const userDataPath = import_electron2.app.getPath("userData");
-    const thumbDir = import_path3.default.join(userDataPath, "thumbnails");
-    if (!import_fs3.default.existsSync(thumbDir)) {
-      import_fs3.default.mkdirSync(thumbDir, { recursive: true });
+    const userDataPath = import_electron3.app.getPath("userData");
+    const thumbDir = import_path4.default.join(userDataPath, "thumbnails");
+    if (!import_fs4.default.existsSync(thumbDir)) {
+      import_fs4.default.mkdirSync(thumbDir, { recursive: true });
     }
     const filename = `thumb_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.png`;
-    const fullPath = import_path3.default.join(thumbDir, filename);
+    const fullPath = import_path4.default.join(thumbDir, filename);
     const seekArg = targetTime > 0 ? targetTime.toFixed(2) : "0";
     (0, import_child_process2.execFile)(
-      "ffmpeg",
+      getFFmpegPath(),
       [
         "-y",
         "-ss",
@@ -1035,7 +1069,7 @@ async function generateThumbnailWithFFmpeg(filePath, targetTimeInput) {
       ],
       { timeout: 15e3 },
       (err) => {
-        if (!err && import_fs3.default.existsSync(fullPath)) {
+        if (!err && import_fs4.default.existsSync(fullPath)) {
           resolve({ imagePath: fullPath, duration, targetTime });
         } else {
           console.error("FFmpeg thumbnail generation error:", err);
@@ -1045,7 +1079,7 @@ async function generateThumbnailWithFFmpeg(filePath, targetTimeInput) {
     );
   });
 }
-import_electron2.ipcMain.handle("app:generateThumbnail", async (_, { filePath, targetTime }) => {
+import_electron3.ipcMain.handle("app:generateThumbnail", async (_, { filePath, targetTime }) => {
   return generateThumbnailWithFFmpeg(filePath, targetTime);
 });
 // Annotate the CommonJS export names for ESM import in node:

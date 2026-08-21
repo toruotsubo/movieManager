@@ -8,7 +8,7 @@ import { InitialSetupModal } from './InitialSetupModal';
 import { MovieFormModal } from './MovieFormModal';
 import { KeyItemFormModal } from './KeyItemFormModal';
 import { DragDropWrapper } from './DragDropWrapper';
-import { getSplitValues, getKanaForCast } from '../lib/utils';
+import { getSplitValues, getKanaForCast, isVideoFile } from '../lib/utils';
 
 import { Language, TranslationKey, t as translate } from '../lib/translations';
 
@@ -197,6 +197,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const handleFileDrop = async (filePath: string, fileName: string) => {
+    if (!isVideoFile(filePath || fileName)) {
+      return;
+    }
+
     let existingMovie = movies.find((m) => m.file_path === filePath);
     if (!existingMovie && window.api) {
       existingMovie = (await window.api.getMovieByPath(filePath)) || undefined;

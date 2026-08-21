@@ -6,6 +6,7 @@ import { Settings, Check, Radio, Circle, RotateCcw, GripVertical, Lock } from 'l
 import { clsx } from 'clsx';
 import { useApp } from './AppProvider';
 import { LanguageSetting } from '../lib/translations';
+import { ConfirmModal } from './ConfirmModal';
 
 interface InitialSetupModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
   // Drag state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const isLoadedRef = React.useRef(false);
 
@@ -156,18 +158,20 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
     if (onClose) onClose();
   };
 
-  const handleResetData = async () => {
-    if (confirm(t('confirmResetData'))) {
-      if (onResetData) {
-        await onResetData();
-      }
-      setCustom1('');
-      setCustom2('');
-      setCustom3('');
-      setSelectedKeyField('genre');
-      setSelectedLanguage('auto');
-      setReorderableFieldIds(DEFAULT_FIELD_ORDER.filter((id) => id !== 'title' && id !== 'rating'));
+  const handleResetData = () => {
+    setShowResetConfirm(true);
+  };
+
+  const executeResetData = async () => {
+    if (onResetData) {
+      await onResetData();
     }
+    setCustom1('');
+    setCustom2('');
+    setCustom3('');
+    setSelectedKeyField('genre');
+    setSelectedLanguage('auto');
+    setReorderableFieldIds(DEFAULT_FIELD_ORDER.filter((id) => id !== 'title' && id !== 'rating'));
   };
 
   return (
@@ -401,6 +405,17 @@ export const InitialSetupModal: React.FC<InitialSetupModalProps> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showResetConfirm}
+        title={t('resetData')}
+        description={t('confirmResetData')}
+        confirmText={t('resetData')}
+        cancelText={t('cancel')}
+        variant="danger"
+        onConfirm={executeResetData}
+        onClose={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 };

@@ -15,8 +15,8 @@ export const TRANSLATIONS = {
     loading: '読み込み中...',
     unspecified: '-',
     all: 'すべて',
-    confirmDelete: 'この動画を削除してもよろしいですか？',
-    confirmResetData: '設定とすべての登録済み動画データを初期化しますか？この操作は取り消せません。',
+    confirmDelete: 'この動画の登録を削除しますか？この操作は取り消せません。',
+    confirmResetData: '設定とすべての登録データを初期化しますか？しますか？この操作は取り消せません。',
     resetData: 'データ初期化',
     on: 'ON',
     off: 'OFF',
@@ -140,6 +140,8 @@ export const TRANSLATIONS = {
     // Drag & Drop Wrapper
     drag_drop_overlay_title: '動画ファイルをドロップ',
     drag_drop_overlay_desc: '項目入力フォームが自動で開きます',
+    drag_drop_invalid_title: '非対応のファイル',
+    drag_drop_invalid_file: '動画以外のファイルは登録できません。',
   },
   en: {
     // English Translation (Defaulting to Japanese text as requested until translated by user)
@@ -279,6 +281,8 @@ export const TRANSLATIONS = {
     // Drag & Drop Wrapper
     drag_drop_overlay_title: 'Drop video files',
     drag_drop_overlay_desc: 'The item input form will open automatically',
+    drag_drop_invalid_title: 'Unsupported File',
+    drag_drop_invalid_file: 'Only video files can be registered.',
   },
 } as const;
 

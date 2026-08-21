@@ -5,10 +5,10 @@
   "main": "dist-electron/main.js",
   "private": true,
   "scripts": {
-    "dev:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist-electron --external electron --watch",
+    "dev:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist-electron --external electron --external ffmpeg-static --watch",
     "dev:next": "next dev -p 3000",
     "dev": "concurrently -k \"npm run dev:next\" \"npm run dev:electron\" \"wait-on http://localhost:3000 && electron .\"",
-    "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist-electron --external electron",
+    "build:electron": "tsup electron/main.ts electron/preload.ts --out-dir dist-electron --external electron --external ffmpeg-static",
     "build:next": "next build",
     "build": "npm run build:next && npm run build:electron && electron-builder",
     "start": "electron ."
@@ -23,6 +23,9 @@
       "dist-electron/**/*",
       "out/**/*"
     ],
+    "asarUnpack": [
+      "**/node_modules/ffmpeg-static/**/*"
+    ],
     "icon": "build/icon.png",
     "win": {
       "icon": "build/icon.ico"
@@ -30,6 +33,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "ffmpeg-static": "^5.3.0",
     "lucide-react": "^0.475.0",
     "next": "^14.2.23",
     "react": "^18.3.1",

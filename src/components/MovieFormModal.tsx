@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { useApp } from './AppProvider';
+import { ConfirmModal } from './ConfirmModal';
 
 interface MovieFormModalProps {
   isOpen: boolean;
@@ -73,6 +74,7 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [isAutoGeneratingSummary, setIsAutoGeneratingSummary] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const generateDefaultSummaryImage = (filePath: string, presetDuration?: number | null) => {
     return new Promise<{ imagePath: string | null; targetTime: number }>(async (resolve) => {
@@ -403,22 +405,25 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!movie?.id) return;
-    if (confirm(t('confirmDelete'))) {
-      // グループ化がONになっている場合、まずグループ化をOFFにする
-      if (isGrouped || movie.is_grouped || movie.parent_movie_id) {
-        await onSave({
-          ...movie,
-          is_grouped: false,
-          parent_movie_id: null,
-        });
-      }
-      if (onDelete) {
-        await onDelete(movie.id);
-      }
-      onClose();
+    setShowDeleteConfirm(true);
+  };
+
+  const executeDelete = async () => {
+    if (!movie?.id) return;
+    // グループ化がONになっている場合、まずグループ化をOFFにする
+    if (isGrouped || movie.is_grouped || movie.parent_movie_id) {
+      await onSave({
+        ...movie,
+        is_grouped: false,
+        parent_movie_id: null,
+      });
     }
+    if (onDelete) {
+      await onDelete(movie.id);
+    }
+    onClose();
   };
 
   const isUnsupportedPlaybackFormat = isUnsupportedInlinePlayback(movie?.file_path);
@@ -899,6 +904,17 @@ export const MovieFormModal: React.FC<MovieFormModalProps> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title={t('delete')}
+        description={t('confirmDelete')}
+        confirmText={t('delete')}
+        cancelText={t('cancel')}
+        variant="danger"
+        onConfirm={executeDelete}
+        onClose={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 };
